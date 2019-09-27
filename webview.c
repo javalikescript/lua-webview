@@ -5,46 +5,152 @@
 #define WEBVIEW_IMPLEMENTATION
 #include "webview.h"
 
+/*
+********************************************************************************
+* Lua reference structure and functions
+********************************************************************************
+*/
+
+typedef struct LuaReferenceStruct {
+	lua_State *state;
+	int ref;
+} LuaReference;
+
+static void initLuaReference(LuaReference *r) {
+	if (r != NULL) {
+		r->state = NULL;
+		r->ref = LUA_NOREF;
+	}
+}
+
+static void registerLuaReference(LuaReference *r, lua_State *l) {
+	if ((r != NULL) && (l != NULL)) {
+		if ((r->state != NULL) && (r->ref != LUA_NOREF)) {
+			luaL_unref(r->state, LUA_REGISTRYINDEX, r->ref);
+		}
+		r->state = l;
+		r->ref = luaL_ref(l, LUA_REGISTRYINDEX);
+	}
+}
+
+static void unregisterLuaReference(LuaReference *r) {
+	if ((r != NULL) && (r->state != NULL) && (r->ref != LUA_NOREF)) {
+		luaL_unref(r->state, LUA_REGISTRYINDEX, r->ref);
+		r->state = NULL;
+		r->ref = LUA_NOREF;
+	}
+}
+
+/*
+********************************************************************************
+* Lua webview structure
+********************************************************************************
+*/
+
+typedef struct LuaWebViewStruct {
+	LuaReference cbFn;
+	struct webview webview;
+} LuaWebView;
+
+#define WEBVIEW_PTR(_cp) \
+	((LuaWebView *) ((char *) (_cp) - offsetof(LuaWebView, webview)))
+
+/*
+********************************************************************************
+* Lua webview functions
+********************************************************************************
+*/
+
 static int lua_webview_open(lua_State *l) {
 	const char *url = luaL_checkstring(l, 1);
 	const char *title = luaL_optstring(l, 2, "Lua Web View");
 	lua_Integer width = luaL_optinteger(l, 3, 800);
 	lua_Integer height = luaL_optinteger(l, 4, 600);
-	lua_Integer resizable = luaL_optinteger(l, 5, 1);
+	lua_Integer resizable = lua_toboolean(l, 5);
 	webview(title, url, width, height, resizable);
     return 0;
 }
 
-// see https://github.com/zserge/webview
-
 static int lua_webview_new(lua_State *l) {
-	struct webview *webview = (struct webview *)lua_newuserdata(l, sizeof(struct webview));
-	memset(webview, 0, sizeof(struct webview));
-	webview->url = luaL_optstring(l, 1, "");
-	webview->title = luaL_optstring(l, 2, "Lua Web View");
-	webview->width = luaL_optinteger(l, 3, 800);
-	webview->height = luaL_optinteger(l, 4, 600);
-	webview->resizable = luaL_optinteger(l, 5, 1);
-	int r = webview_init(webview);
+	LuaWebView *lwv = (LuaWebView *)lua_newuserdata(l, sizeof(LuaWebView));
+	memset(lwv, 0, sizeof(LuaWebView));
+	lwv->webview.url = luaL_optstring(l, 1, "");
+	lwv->webview.title = luaL_optstring(l, 2, "Lua Web View");
+	lwv->webview.width = luaL_optinteger(l, 3, 800);
+	lwv->webview.height = luaL_optinteger(l, 4, 600);
+	lwv->webview.resizable = lua_toboolean(l, 5);
+	int r = webview_init(&lwv->webview);
 	if (r != 0) {
 		return 0;
 	}
+	initLuaReference(&lwv->cbFn);
 	luaL_getmetatable(l, "webview");
 	lua_setmetatable(l, -2);
 	return 1;
 }
 
 static int lua_webview_loop(lua_State *l) {
-	struct webview *webview = (struct webview *)lua_touserdata(l, 1);
-	int blocking = lua_toboolean(l, 1);
-	int r = webview_loop(webview, blocking);
+	LuaWebView *lwv = (LuaWebView *)lua_touserdata(l, 1);
+	int blocking = lua_toboolean(l, 2);
+	int r = webview_loop(&lwv->webview, blocking);
 	lua_pushboolean(l, r);
-	return r;
+	return 1;
+}
+
+static void lua_webview_cb(struct webview *w, const char *arg) {
+	if ((w != NULL) && (arg != NULL)) {
+		LuaWebView *lwv = WEBVIEW_PTR(w);
+		lua_State *l = lwv->cbFn.state;
+		int ref = lwv->cbFn.ref;
+		if ((l != NULL) && (ref != LUA_NOREF)) {
+			lua_rawgeti(l, LUA_REGISTRYINDEX, ref);
+			lua_pushstring(l, arg);
+			lua_pcall(l, 1, 0, 0);
+		}
+	}
+}
+
+static int lua_webview_callback(lua_State *l) {
+	LuaWebView *lwv = (LuaWebView *)lua_touserdata(l, 1);
+	if (lua_isfunction(l, 2)) {
+		lua_pushvalue(l, 2);
+		registerLuaReference(&lwv->cbFn, l);
+		lwv->webview.external_invoke_cb = &lua_webview_cb;
+	} else {
+		unregisterLuaReference(&lwv->cbFn);
+		lwv->webview.external_invoke_cb = NULL;
+	}
+	return 0;
+}
+
+static void dispatched_eval(struct webview *w, void *arg) {
+	webview_eval(w, (const char *) arg);
+}
+
+static int lua_webview_eval(lua_State *l) {
+	LuaWebView *lwv = (LuaWebView *)lua_touserdata(l, 1);
+	const char *js = luaL_checkstring(l, 2);
+	int dispatch = lua_toboolean(l, 3);
+	if (dispatch) {
+		// do we need to register the js code to dispatch?
+		webview_dispatch(&lwv->webview, dispatched_eval, (void *)js);
+		return 0;
+	}
+	int r = webview_eval(&lwv->webview, js);
+	lua_pushboolean(l, r);
+	return 1;
+}
+
+static int lua_webview_lighten(lua_State *l) {
+	LuaWebView *lwv = (LuaWebView *)lua_touserdata(l, 1);
+	lua_pushlightuserdata(l, lwv);
+	return 1;
 }
 
 static int lua_webview_gc(lua_State *l) {
-	struct webview *webview = (struct webview *)lua_touserdata(l, 1);
-	webview_exit(webview);
+	LuaWebView *lwv = (LuaWebView *)lua_touserdata(l, 1);
+	webview_exit(&lwv->webview);
+	unregisterLuaReference(&lwv->cbFn);
 	return 0;
 }
 
@@ -58,6 +164,9 @@ LUALIB_API int luaopen_webview(lua_State *l) {
 		{ "open", lua_webview_open },
 		{ "new", lua_webview_new },
 		{ "loop", lua_webview_loop },
+		{ "eval", lua_webview_eval },
+		{ "callback", lua_webview_callback },
+		{ "lighten", lua_webview_lighten },
 		{ NULL, NULL }
 	};
 	lua_newtable(l);
