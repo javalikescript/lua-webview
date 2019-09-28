@@ -1,4 +1,4 @@
-The Lua webview module provides functions to open web page from Lua.
+The Lua webview module provides functions to open a web page in a dedicated window from Lua.
 
 ```lua
 local webviewLib = require('webview')
