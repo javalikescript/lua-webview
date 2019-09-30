@@ -71,13 +71,18 @@ static int lua_webview_open(lua_State *l) {
 }
 
 static int lua_webview_new(lua_State *l) {
+	const char *url = luaL_optstring(l, 1, "");
+	const char *title = luaL_optstring(l, 2, "Lua Web View");
+	lua_Integer width = luaL_optinteger(l, 3, 800);
+	lua_Integer height = luaL_optinteger(l, 4, 600);
+	lua_Integer resizable = lua_toboolean(l, 5);
 	LuaWebView *lwv = (LuaWebView *)lua_newuserdata(l, sizeof(LuaWebView));
 	memset(lwv, 0, sizeof(LuaWebView));
-	lwv->webview.url = luaL_optstring(l, 1, "");
-	lwv->webview.title = luaL_optstring(l, 2, "Lua Web View");
-	lwv->webview.width = luaL_optinteger(l, 3, 800);
-	lwv->webview.height = luaL_optinteger(l, 4, 600);
-	lwv->webview.resizable = lua_toboolean(l, 5);
+	lwv->webview.url = url;
+	lwv->webview.title = title;
+	lwv->webview.width = width;
+	lwv->webview.height = height;
+	lwv->webview.resizable = resizable;
 	int r = webview_init(&lwv->webview);
 	if (r != 0) {
 		return 0;
