@@ -100,15 +100,17 @@ static LuaWebView *lua_webview_asudata(lua_State *l, int ud) {
 	return (LuaWebView *)luaL_checkudata(l, ud, "webview");
 }
 
+static const char *const lua_webview_loop_modes[] = {
+  "default", "once", "nowait", NULL
+};
+
 static int lua_webview_loop(lua_State *l) {
 	LuaWebView *lwv = (LuaWebView *)luaL_checkudata(l, 1, "webview");
-	int blocking = lua_toboolean(l, 2);
-	int wait = lua_toboolean(l, 3);
-	blocking = blocking || wait;
+	int mode = luaL_checkoption(l, 2, "default", lua_webview_loop_modes);
 	int r;
 	do {
-		r = webview_loop(&lwv->webview, blocking);
-	} while (wait && (r == 0));
+		r = webview_loop(&lwv->webview, mode != 2);
+	} while ((mode == 0) && (r == 0));
 	lua_pushboolean(l, r);
 	return 1;
 }
@@ -157,6 +159,20 @@ static int lua_webview_eval(lua_State *l) {
 	return 1;
 }
 
+static int lua_webview_title(lua_State *l) {
+	LuaWebView *lwv = (LuaWebView *)lua_webview_asudata(l, 1);
+	const char *title = luaL_checkstring(l, 2);
+	webview_set_title(&lwv->webview, title);
+	return 0;
+}
+
+static int lua_webview_fullscreen(lua_State *l) {
+	LuaWebView *lwv = (LuaWebView *)lua_webview_asudata(l, 1);
+	int fullscreen = lua_toboolean(l, 2);
+	webview_set_fullscreen(&lwv->webview, fullscreen);
+	return 0;
+}
+
 static void dispatched_terminate(struct webview *w, void *arg) {
 	webview_terminate(w);
 }
@@ -181,6 +197,7 @@ static int lua_webview_lighten(lua_State *l) {
 static int lua_webview_gc(lua_State *l) {
 	LuaWebView *lwv = (LuaWebView *)luaL_testudata(l, 1, "webview");
 	if (lwv != NULL) {
+		//webview_debug("lua_webview_gc()");
 		webview_exit(&lwv->webview);
 		unregisterLuaReference(&lwv->cbFn);
 	}
@@ -200,6 +217,8 @@ LUALIB_API int luaopen_webview(lua_State *l) {
 		{ "eval", lua_webview_eval },
 		{ "callback", lua_webview_callback },
 		{ "terminate", lua_webview_terminate },
+		{ "fullscreen", lua_webview_fullscreen },
+		{ "title", lua_webview_title },
 		{ "lighten", lua_webview_lighten },
 		{ NULL, NULL }
 	};
