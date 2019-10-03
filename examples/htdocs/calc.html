@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Calc</title>
+    <link rel="stylesheet" href="calc.css">
+  </head>
+  <body>
+    <section id="calc">
+      <div class="toolbar">
+        <span v-if="seen">
+          <button title="Reload" onclick="window.location.reload()">&#x21bb;</button>
+        </span>
+        <button title="Settings" v-on:click="seen = !seen">&#x2699;</button>
+      </div>
+      <div class="line">
+          {{ value }}
+      </div>
+      <table>
+        <tbody>
+          <tr>
+            <td></td>
+            <td><button v-on:click="value = '0'">C</button></td>
+            <td><button v-on:click="backspace">&#x2190;</button></td>
+            <td><button v-on:click="append(' / ')">/</button></td>
+          </tr>
+          <tr>
+            <td><button class="input" v-on:click="append('7')">7</button></td>
+            <td><button class="input" v-on:click="append('8')">8</button></td>
+            <td><button class="input" v-on:click="append('9')">9</button></td>
+            <td><button v-on:click="append(' * ')">*</button></td>
+          </tr>
+          <tr>
+            <td><button class="input" v-on:click="append('4')">4</button></td>
+            <td><button class="input" v-on:click="append('5')">5</button></td>
+            <td><button class="input" v-on:click="append('6')">6</button></td>
+            <td><button v-on:click="append(' - ')">-</button></td>
+          </tr>
+          <tr>
+            <td><button class="input" v-on:click="append('1')">1</button></td>
+            <td><button class="input" v-on:click="append('2')">2</button></td>
+            <td><button class="input" v-on:click="append('3')">3</button></td>
+            <td><button v-on:click="append(' + ')">+</button></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td><button class="input" v-on:click="append('0')">0</button></td>
+            <td><button v-on:click="append('.')">.</button></td>
+            <td><button v-on:click="calculate">=</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    <script src="assets/promise.min.js" type="text/javascript"></script>
+    <script src="assets/fetch.umd.js" type="text/javascript"></script>
+    <script src="assets/vue.min.js" type="text/javascript"></script>
+    <script src="calc.js" type="text/javascript"></script>
+  </body>
+</html>

@@ -1,0 +1,38 @@
+body {
+	font-family: sans-serif;
+	background: #ededed;
+}
+div.toolbar {
+	text-align: right;
+}
+.line {
+	width: 90%;
+	height: 4rem;
+	font-size: 3rem;
+	text-align: right;
+	text-overflow: ellipsis;
+}
+table {
+	width: 100%;
+}
+button {
+	background: none;
+	border: none;
+	overflow: hidden;
+	margin: 1px;
+	height: 3rem;
+	font-size: 1.5rem;
+}
+table button {
+	background: #fbfbfb;
+	width: 100%;
+}
+table button.input {
+	background: #f3f3f3;
+}
+table button:hover, button:hover {
+	background: #c0c0c0;
+}
+button:active {
+	transform: scale(0.9);
+}
