@@ -30,7 +30,7 @@ httpServer:bind('::', 0):next(function()
   local addr = httpServer:getAddress()
   local port = addr.port
   print('HTTP Server listening on port '..tostring(port))
-  WebView.openInThread('http://localhost:'..tostring(port)..'/calc.html', 'Calc', 400, 600, true):next(function(webview)
+  WebView.openInThread('http://localhost:'..tostring(port)..'/calc.html', 'Calc', 320, 480, true):next(function(webview)
     return webview:wait()
   end):next(function()
     httpServer:close():next(function()
