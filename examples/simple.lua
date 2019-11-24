@@ -4,24 +4,17 @@ local url = [[data:text/html,<!DOCTYPE html>
 <html>
   <body>
     <p id="sentence">It works !</p>
-    <button onclick="showText('...')">Clear</button>
-    <button onclick="invokeExternal('eval', 'showText(&quot;Hi&quot;)')">Show Hi</button>
-    <button onclick="invokeExternal('title', 'Hello Title')">Change Title</button>
-    <button onclick="invokeExternal('lua', 'print(\'Hello Lua\')')">Print Hello</button>
-    <button onclick="invokeExternal('lua', 'return \'showText(&quot;Lua date is \'..os.date()..\'&quot;)\'')">Show Date</button>
+    <button onclick="window.external.invoke('title=Changed Title')">Change Title</button>
+    <button onclick="window.external.invoke('print_date')">Print Date</button>
+    <button onclick="window.external.invoke('show_date')">Show Date</button>
     <br/>
-    <button title="Full-screen" onclick="fullscreen = !fullscreen; invokeExternal('fullscreen', '' + fullscreen)">&#x2922;</button>
     <button title="Reload" onclick="window.location.reload()">&#x21bb;</button>
-    <button title="Terminate" onclick="invokeExternal('terminate')">&#x2716;</button>
+    <button title="Toggle fullscreen" onclick="fullscreen = !fullscreen; window.external.invoke(fullscreen ? 'fullscreen' : 'exit_fullscreen')">&#x2922;</button>
+    <button title="Terminate" onclick="window.external.invoke('terminate')">&#x2716;</button>
+    <br/>
   </body>
   <script type="text/javascript">
   var fullscreen = false;
-  function showText(value) {
-    document.getElementById("sentence").innerHTML = value;
-  }
-  function invokeExternal(cmd, line) {
-    window.external.invoke(cmd + ':' + (line || ''));
-  }
   </script>
 </html>
 ]]
@@ -29,27 +22,20 @@ local url = [[data:text/html,<!DOCTYPE html>
 local webview = webviewLib.new(url, 'Example', 320, 200)
 
 webviewLib.callback(webview, function(value)
-    local cmd, line = string.match(value, '^([^:]+):(.*)$')
-    if cmd == 'eval' then
-        webviewLib.eval(webview, line, true)
-    elseif cmd == 'lua' then
-        local f, err = load(line)
-        if f then
-            local r = f()
-            if type(r) == 'string' then
-                webviewLib.eval(webview, r, true)
-            end
-        else
-            print('error', err)
-        end
-    elseif cmd == 'title' then
-        webviewLib.title(webview, line)
-    elseif cmd == 'fullscreen' then
-        webviewLib.fullscreen(webview, line == 'true')
-    elseif cmd == 'terminate' then
+    if value == 'print_date' then
+        print(os.date())
+    elseif value == 'show_date' then
+        webviewLib.eval(webview, 'document.getElementById("sentence").innerHTML =  "Lua date is '..os.date()..'"', true)
+    elseif value == 'fullscreen' then
+        webviewLib.fullscreen(webview, true)
+    elseif value == 'exit_fullscreen' then
+        webviewLib.fullscreen(webview, false)
+    elseif value == 'terminate' then
         webviewLib.terminate(webview, true)
+    elseif string.find(value, '^title=') then
+        webviewLib.title(webview, string.sub(value, 7))
     else
-        print('callback', value)
+        print('callback received', value)
     end
 end)
 

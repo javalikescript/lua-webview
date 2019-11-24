@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <p id="sentence">It works !</p>
+    <button onclick="showText('...')">Clear</button>
+    <button onclick="invokeExternal('evalJs', 'showText(&quot;Hello JS&quot;)')">Show Hi</button>
+    <button onclick="invokeExternal('title', 'Hello Title')">Change Title</button>
+    <button onclick="invokeExternal('evalLua', 'print(\'Hello Lua\')')">Print Hi</button>
+    <button onclick="invokeExternal('showDate')">Show Date</button>
+    <br/>
+    <button onclick="invokeExternalJson('print', new Date().toString())">Print Date</button>
+    <button onclick="invokeExternalJson('print', Math.floor(new Date().getTime() / 1000))">Print Seconds</button>
+    <button onclick="invokeExternalJson('print', fullscreen)">Print fullscreen</button>
+    <br/>
+    <button title="Full-screen" onclick="fullscreen = !fullscreen; invokeExternal('fullscreen', '' + fullscreen)">&#x2922;</button>
+    <button title="Reload" onclick="window.location.reload()">&#x21bb;</button>
+    <button title="Terminate" onclick="invokeExternal('terminate')">&#x2716;</button>
+  </body>
+  <script type="text/javascript">
+  var fullscreen = false;
+  function showText(value) {
+    document.getElementById("sentence").innerHTML = value;
+  }
+  function invokeExternal(cmd, string) {
+    window.external.invoke(cmd + ':' + string);
+  }
+  function invokeExternalJson(cmd, obj) {
+    window.external.invoke(cmd + ':' + JSON.stringify(obj));
+  }
+  invokeExternal('*print', 'print(type(value), value)')
+  invokeExternal('+showDate', "callJs('showText', 'Lua date is '..os.date())")
+  </script>
+</html>

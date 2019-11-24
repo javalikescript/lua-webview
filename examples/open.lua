@@ -1,3 +1,4 @@
+-- Default web content
 local url = [[data:text/html,<!DOCTYPE html>
 <html>
   <body>
@@ -7,10 +8,12 @@ local url = [[data:text/html,<!DOCTYPE html>
 </html>
 ]]
 
+-- Parse command line arguments
 local urlArg = arg[1]
 if urlArg and urlArg ~= '' then
   if urlArg == '-h' or urlArg == '/?' or urlArg == '--help' then
     print('Opens a WebView using the specified URL')
+    print('Optional arguments: url title width height resizable')
     os.exit(0)
   end
   local protocol = string.match(urlArg, '^([^:]+):.+$')
@@ -23,7 +26,10 @@ if urlArg and urlArg ~= '' then
     os.exit(22)
   end
 end
-
 local title = arg[2] or 'Web View'
+local width = arg[3] or 800
+local height = arg[4] or 600
+local resizable = arg[5] ~= 'false'
 
-require('webview').open(url, title, 800, 600, true)
+-- Opens the web view
+require('webview').open(url, title, width, height, resizable)

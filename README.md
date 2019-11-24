@@ -38,3 +38,7 @@ wlua53 examples/simple.lua
 <img src="https://javalikescript.github.io/lua-webview/screenshots/lua-webview-simple-linux.png" />
 <img src="https://javalikescript.github.io/lua-webview/screenshots/lua-webview-simple-windows.png" />
 
+Generic launcher, with helper function to pass JSON objects
+```lua
+lua examples\launch.lua %CD%\examples\htdocs\simple.html
+```
