@@ -228,6 +228,22 @@ static int lua_webview_lighten(lua_State *l) {
 	return 1;
 }
 
+static int lua_webview_asstring(lua_State *l) {
+	LuaWebView *lwv = (LuaWebView *)luaL_checkudata(l, 1, "webview");
+ 	lua_pushlstring(l, (const char *) &lwv, sizeof(void *));
+	return 1;
+}
+
+static int lua_webview_fromstring(lua_State *l) {
+	size_t len = 0;
+	const char *udata = luaL_optlstring(l, 1, NULL, &len);
+	if (len == sizeof(void *)) {
+		lua_pushlightuserdata(l, *((void **) udata));
+		return 1;
+	}
+	return 0;
+}
+
 static int lua_webview_gc(lua_State *l) {
 	LuaWebView *lwv = (LuaWebView *)luaL_testudata(l, 1, "webview");
 	if (lwv != NULL) {
@@ -254,6 +270,8 @@ LUALIB_API int luaopen_webview(lua_State *l) {
 		{ "fullscreen", lua_webview_fullscreen },
 		{ "title", lua_webview_title },
 		{ "lighten", lua_webview_lighten },
+		{ "asstring", lua_webview_asstring },
+		{ "fromstring", lua_webview_fromstring },
 		{ NULL, NULL }
 	};
 	lua_newtable(l);
