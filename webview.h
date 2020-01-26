@@ -250,14 +250,19 @@ static void external_message_received_cb(WebKitUserContentManager *m,
   if (w->external_invoke_cb == NULL) {
     return;
   }
+#if WEBKIT_MAJOR_VERSION >= 2 && WEBKIT_MINOR_VERSION >= 22
+  JSCValue *value = webkit_javascript_result_get_js_value(r);
+  char *s = jsc_value_to_string(value);
+#else
   JSGlobalContextRef context = webkit_javascript_result_get_global_context(r);
   JSValueRef value = webkit_javascript_result_get_value(r);
   JSStringRef js = JSValueToStringCopy(context, value, NULL);
   size_t n = JSStringGetMaximumUTF8CStringSize(js);
   char *s = g_new(char, n);
   JSStringGetUTF8CString(js, s, n);
-  w->external_invoke_cb(w, s);
   JSStringRelease(js);
+#endif
+  w->external_invoke_cb(w, s);
   g_free(s);
 }
 
@@ -1117,6 +1122,9 @@ static int DisplayHTMLPage(struct webview *w) {
     LPCSTR webPageName;
     isDataURL = (strncmp(webview_url, WEBVIEW_DATA_URL_PREFIX,
                          strlen(WEBVIEW_DATA_URL_PREFIX)) == 0);
+#ifdef WEBVIEW_SUPRESS_ERRORS
+	webBrowser2->lpVtbl->put_Silent(webBrowser2, true);
+#endif
     if (isDataURL) {
       webPageName = "about:blank";
     } else {
@@ -1326,9 +1334,9 @@ WEBVIEW_API int webview_init(struct webview *w) {
 WEBVIEW_API int webview_loop(struct webview *w, int blocking) {
   MSG msg;
   if (blocking) {
-    GetMessage(&msg, 0, 0, 0);
+    if (GetMessage(&msg, 0, 0, 0)<0) return 0;
   } else {
-    PeekMessage(&msg, 0, 0, 0, PM_REMOVE);
+    if (!PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) return 0;
   }
   switch (msg.message) {
   case WM_QUIT:
@@ -1385,14 +1393,12 @@ WEBVIEW_API int webview_eval(struct webview *w, const char *js) {
     return -1;
   }
   DISPID dispid;
-  BSTR evalStr = SysAllocString(L"eval");
+  wchar_t *evalStr = L"eval";
   if (scriptDispatch->lpVtbl->GetIDsOfNames(
           scriptDispatch, iid_unref(&IID_NULL), &evalStr, 1,
           LOCALE_SYSTEM_DEFAULT, &dispid) != S_OK) {
-    SysFreeString(evalStr);
     return -1;
   }
-  SysFreeString(evalStr);
 
   DISPPARAMS params;
   VARIANT arg;
@@ -1575,7 +1581,7 @@ WEBVIEW_API void webview_dialog(struct webview *w,
     IShellItem *res = NULL;
     WCHAR *ws = NULL;
     char *s = NULL;
-    FILEOPENDIALOGOPTIONS opts, add_opts;
+    FILEOPENDIALOGOPTIONS opts = 0, add_opts = 0;
     if (dlgtype == WEBVIEW_DIALOG_TYPE_OPEN) {
       if (CoCreateInstance(
               iid_unref(&CLSID_FileOpenDialog), NULL, CLSCTX_INPROC_SERVER,
@@ -2104,7 +2110,7 @@ WEBVIEW_API int webview_eval(struct webview *w, const char *js) {
 }
 
 WEBVIEW_API void webview_set_title(struct webview *w, const char *title) {
-  objc_msgSend(w->priv.window, sel_registerName("setTitle"),
+  objc_msgSend(w->priv.window, sel_registerName("setTitle:"),
                get_nsstring(title));
 }
 
