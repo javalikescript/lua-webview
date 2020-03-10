@@ -280,7 +280,7 @@ LUALIB_API int luaopen_webview(lua_State *l) {
 	luaL_setfuncs(l, reg, 0);
 	lua_pushliteral(l, "Lua webview");
 	lua_setfield(l, -2, "_NAME");
-	lua_pushliteral(l, "0.1");
+	lua_pushliteral(l, "1.0");
 	lua_setfield(l, -2, "_VERSION");
 	return 1;
 }
