@@ -42,3 +42,13 @@ Generic launcher, with helper function to pass JSON objects
 ```lua
 lua examples\launch.lua %CD%\examples\htdocs\simple.html
 ```
+
+## LuaRocks
+
+Lua webview can be intalled using LuaRocks on Linux
+
+```sh
+sudo apt install luarocks lua5.3 lua5.3-dev
+sudo apt-get install libbluetooth-dev libgtk-3-dev libwebkit2gtk-4.0-dev
+luarocks install lua-webview --local
+```
