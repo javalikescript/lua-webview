@@ -1,9 +1,12 @@
+#
 # Makefile for rockspec
 #
-# luarocks MAKE=make CC=gcc LD=gcc make --lua-dir ../../luaclibs/lua/src
+# Install with Lua Binaries:
+#  luarocks --lua-dir C:/bin/lua-5.3.5 MAKE=make CC=gcc LD=gcc install lua-webview
 #
-# see https://github.com/luarocks/luarocks/wiki/Creating-a-Makefile-that-plays-nice-with-LuaRocks
-# and https://github.com/luarocks/luarocks/wiki/Recommended-practices-for-Makefiles
+# Build with luaclibs:
+#  luarocks --lua-dir ../../luaclibs/lua/src MAKE=make CC=gcc LD=gcc make
+#
 
 CC ?= gcc
 

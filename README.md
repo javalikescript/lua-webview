@@ -45,10 +45,28 @@ lua examples\launch.lua %CD%\examples\htdocs\simple.html
 
 ## LuaRocks
 
-Lua webview can be intalled using LuaRocks on Linux
+Lua webview can be intalled using LuaRocks
 
+### LuaRocks on Linux
+
+Prerequisites:
 ```sh
 sudo apt install luarocks lua5.3 lua5.3-dev
 sudo apt-get install libbluetooth-dev libgtk-3-dev libwebkit2gtk-4.0-dev
+```
+
+```sh
 luarocks install lua-webview --local
 ```
+
+### LuaRocks on Windows
+
+Prerequisites:
+Download the Lua 64 bits dynamic libraries built with MinGW-w64 from [Lua Binaries](https://sourceforge.net/projects/luabinaries/).
+Add [MSYS2](https://www.msys2.org/), MinGW-w64 and [git](https://git-scm.com/) in the path.
+
+
+```Batchfile
+luarocks --lua-dir C:/bin/lua-5.3.5 MAKE=make CC=gcc LD=gcc install lua-webview
+```
+Take care to use forward slashes for the Lua path.
