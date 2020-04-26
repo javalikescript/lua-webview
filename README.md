@@ -6,9 +6,15 @@ The Lua webview module provides functions to open a web page in a dedicated wind
 require('webview').open('http://www.lua.org/')
 ```
 
-This module is a binding of the tiny cross-platform [webview](https://github.com/zserge/webview) library.
+It uses *gtk-webkit2* on Linux and *MSHTML* (IE10/11) on Windows.
 
-This module is part of the [luaclibs](https://github.com/javalikescript/luaclibs) project, the binaries can be found on the [luajls](http://javalikescript.free.fr/lua/) page.
+Lua can evaluate JavaScript code and JavaScript can call a registered Lua function, see `simple.lua` in the examples.
+
+This module is a binding of the tiny cross-platform [webview](https://github.com/zserge/webview/tree/9c1b0a888aa40039d501c1ea9f60b22a076a25ea) library.
+
+This module is part of the [luaclibs](https://github.com/javalikescript/luaclibs) project,
+the binaries can be found on the [luajls](http://javalikescript.free.fr/lua/) page.
+You could also install it using [LuaRocks](#luarocks).
 
 Lua webview is covered by the MIT license.
 
