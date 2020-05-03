@@ -18,10 +18,14 @@ LUA_APP = $(LUA)
 LUA_VERSION = $(shell $(LUA_APP) -e "print(string.sub(_VERSION, 5))")
 LUA_LIBNAME = lua$(subst .,,$(LUA_VERSION))
 
+WEBVIEW_C = webview-c
+MS_WEBVIEW2 = $(WEBVIEW_C)/ms.webview2.0.8.355
+
 CFLAGS_windows = -Wall \
   -Wextra \
   -Wno-unused-parameter \
   -Wstrict-prototypes \
+  -I$(WEBVIEW_C) \
   -I$(LUA_INCDIR) \
   -DWEBVIEW_WINAPI=1
 
@@ -30,7 +34,7 @@ LIBFLAG_windows = -O \
   -Wl,-s \
   -L$(LUA_LIBDIR) -l$(LUA_LIBNAME) \
   -static-libgcc \
-  -lole32 -lcomctl32 -loleaut32 -luuid -mwindows
+  -lole32 -lcomctl32 -loleaut32 -luuid -lgdi32
 
 TARGET_windows = $(LIBNAME).dll
 
@@ -39,6 +43,7 @@ CFLAGS_linux = -pedantic  \
   -Wextra \
   -Wno-unused-parameter \
   -Wstrict-prototypes \
+  -I$(WEBVIEW_C) \
   -I$(LUA_INCDIR) \
   -DWEBVIEW_GTK=1 \
   $(shell pkg-config --cflags gtk+-3.0 webkit2gtk-4.0)
@@ -57,7 +62,7 @@ SOURCES = webview.c
 
 OBJS = webview.o
 
-lib: $(TARGET)
+lib: $(TARGET) WebView2Win32-$(PLAT)
 
 install:
 	cp $(TARGET) $(INST_LIBDIR)
@@ -82,6 +87,17 @@ show-install:
 
 $(TARGET): $(OBJS)
 	$(CC) $(OBJS) $(LIBFLAG) $(LIBFLAG_$(PLAT)) -o $(TARGET)
+
+WebView2Win32-linux:
+
+WebView2Win32-windows:
+	$(CC) $(WEBVIEW_C)/WebView2Win32.c \
+    -shared \
+    -static-libgcc \
+    -Wl,-s \
+    -I$(WEBVIEW_C) -I$(MS_WEBVIEW2)/include \
+    -L$(MS_WEBVIEW2)/x64 -lWebView2Loader \
+    -o WebView2Win32.dll
 
 clean:
 	-$(RM) $(OBJS) $(TARGET)
