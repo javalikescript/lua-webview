@@ -2,10 +2,11 @@
 # Makefile for rockspec
 #
 # Install with Lua Binaries:
-#  luarocks --lua-dir C:/bin/lua-5.3.5 MAKE=make CC=gcc LD=gcc install lua-webview
+#  luarocks --lua-dir C:/bin/lua-5.3.5_Win64_bin MAKE=make CC=gcc LD=gcc install lua-webview
 #
 # Build with luaclibs:
 #  luarocks --lua-dir ../../luaclibs/lua/src MAKE=make CC=gcc LD=gcc make
+#  luarocks --lua-dir C:/bin/lua-5.3.5_Win64_bin MAKE=make CC=gcc LD=gcc make lua-webview-1.1-1.rockspec
 #
 
 CC ?= gcc
@@ -17,6 +18,12 @@ LIBNAME = webview
 LUA_APP = $(LUA)
 LUA_VERSION = $(shell $(LUA_APP) -e "print(string.sub(_VERSION, 5))")
 LUA_LIBNAME = lua$(subst .,,$(LUA_VERSION))
+LUA_BITS = $(shell $(LUA_APP) -e "print(string.len(string.pack('T', 0)) * 8)")
+
+WEBVIEW_ARCH = x64
+ifeq ($(LUA_BITS),32)
+  WEBVIEW_ARCH = x86
+endif
 
 WEBVIEW_C = webview-c
 MS_WEBVIEW2 = $(WEBVIEW_C)/ms.webview2.0.8.355
@@ -64,8 +71,13 @@ OBJS = webview.o
 
 lib: $(TARGET) WebView2Win32-$(PLAT)
 
-install:
+install: install-$(PLAT)
 	cp $(TARGET) $(INST_LIBDIR)
+
+install-linux:
+
+install-windows:
+	cp WebView2Win32.dll $(MS_WEBVIEW2)/$(WEBVIEW_ARCH)/WebView2Loader.dll $(INST_BINDIR)
 
 show:
 	@echo PLAT: $(PLAT)
@@ -96,7 +108,7 @@ WebView2Win32-windows:
     -static-libgcc \
     -Wl,-s \
     -I$(WEBVIEW_C) -I$(MS_WEBVIEW2)/include \
-    -L$(MS_WEBVIEW2)/x64 -lWebView2Loader \
+    -L$(MS_WEBVIEW2)/$(WEBVIEW_ARCH) -lWebView2Loader \
     -o WebView2Win32.dll
 
 clean:
