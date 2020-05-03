@@ -1,6 +1,6 @@
 local webviewLib = require('webview')
 
-local url = [[data:text/html,<!DOCTYPE html>
+local content = [[<!DOCTYPE html>
 <html>
   <body>
     <p id="sentence">It works !</p>
@@ -19,7 +19,11 @@ local url = [[data:text/html,<!DOCTYPE html>
 </html>
 ]]
 
-local webview = webviewLib.new(url, 'Example', 320, 200)
+content = string.gsub(content, "[ %c!#$%%&'()*+,/:;=?@%[%]]", function(c)
+    return string.format('%%%02X', string.byte(c))
+end)
+
+local webview = webviewLib.new('data:text/html,'..content, 'Example', 480, 240)
 
 webviewLib.callback(webview, function(value)
     if value == 'print_date' then

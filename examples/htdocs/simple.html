@@ -3,6 +3,7 @@
   <body>
     <p id="sentence">It works !</p>
     <button onclick="showText('...')">Clear</button>
+    <button onclick="showText(window.navigator.userAgent)">User Agent</button>
     <button onclick="invokeExternal('evalJs', 'showText(&quot;Hello JS&quot;)')">Show Hi</button>
     <button onclick="invokeExternal('title', 'Hello Title')">Change Title</button>
     <button onclick="invokeExternal('evalLua', 'print(\'Hello Lua\')')">Print Hi</button>
