@@ -33,6 +33,7 @@ CFLAGS_windows = -Wall \
   -Wno-unused-parameter \
   -Wstrict-prototypes \
   -I$(WEBVIEW_C) \
+  -I$(MS_WEBVIEW2)/include \
   -I$(LUA_INCDIR) \
   -DWEBVIEW_WINAPI=1
 
@@ -69,7 +70,7 @@ SOURCES = webview.c
 
 OBJS = webview.o
 
-lib: $(TARGET) WebView2Win32-$(PLAT)
+lib: $(TARGET)
 
 install: install-$(PLAT)
 	cp $(TARGET) $(INST_LIBDIR)
@@ -77,7 +78,7 @@ install: install-$(PLAT)
 install-linux:
 
 install-windows:
-	cp WebView2Win32.dll $(MS_WEBVIEW2)/$(WEBVIEW_ARCH)/WebView2Loader.dll $(INST_BINDIR)
+	cp $(MS_WEBVIEW2)/$(WEBVIEW_ARCH)/WebView2Loader.dll $(INST_BINDIR)
 
 show:
 	@echo PLAT: $(PLAT)
@@ -99,17 +100,6 @@ show-install:
 
 $(TARGET): $(OBJS)
 	$(CC) $(OBJS) $(LIBFLAG) $(LIBFLAG_$(PLAT)) -o $(TARGET)
-
-WebView2Win32-linux:
-
-WebView2Win32-windows:
-	$(CC) $(WEBVIEW_C)/WebView2Win32.c \
-    -shared \
-    -static-libgcc \
-    -Wl,-s \
-    -I$(WEBVIEW_C) -I$(MS_WEBVIEW2)/include \
-    -L$(MS_WEBVIEW2)/$(WEBVIEW_ARCH) -lWebView2Loader \
-    -o WebView2Win32.dll
 
 clean:
 	-$(RM) $(OBJS) $(TARGET)
