@@ -27,10 +27,9 @@ httpServer:createContext('/rest/(.*)', httpHandler.rest, {handlers = {
 }})
 
 httpServer:bind('::', 0):next(function()
-  local addr = httpServer:getAddress()
-  local port = addr.port
+  local _, port = httpServer:getAddress()
   print('HTTP Server listening on port '..tostring(port))
-  WebView.open('http://localhost:'..tostring(port)..'/calc.html', 'Calc', 320, 480, true):next(function()
+  WebView.open('http://localhost:'..tostring(port)..'/calc.html', 'Calc', 320, 480, true):ended():next(function()
     print('WebView closed')
     httpServer:close():next(function()
       print('HTTP Server closed')
@@ -40,6 +39,6 @@ end, function(err)
   print('Cannot bind HTTP server, '..tostring(err))
 end)
 
-print('Looping')
+--print('Looping')
 event:loop()
 event:close()
