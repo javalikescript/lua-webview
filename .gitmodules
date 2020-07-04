@@ -1,0 +1,3 @@
+[submodule "webview-c"]
+	path = webview-c
+	url = https://github.com/javalikescript/webview-c.git
