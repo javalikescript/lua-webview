@@ -26,7 +26,7 @@ ifeq ($(LUA_BITS),32)
 endif
 
 WEBVIEW_C = webview-c
-MS_WEBVIEW2 = $(WEBVIEW_C)/ms.webview2.0.8.355
+MS_WEBVIEW2 = $(WEBVIEW_C)/ms.webview2.0.9.430
 
 CFLAGS_windows = -Wall \
   -Wextra \
