@@ -160,10 +160,10 @@ static int lua_webview_init(lua_State *l) {
 		if (lua_isstring(l, 2)) {
 			lwv->webview.title = lua_tostring(l, 2);
 		}
-		if (lua_isinteger(l, 3)) {
+		if (lua_isnumber(l, 3)) {
 			lwv->webview.width = lua_tointeger(l, 3);
 		}
-		if (lua_isinteger(l, 4)) {
+		if (lua_isnumber(l, 4)) {
 			lwv->webview.height = lua_tointeger(l, 4);
 		}
 		if (lua_isboolean(l, 5)) {

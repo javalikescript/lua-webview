@@ -58,7 +58,7 @@ Lua webview can be intalled using LuaRocks
 Prerequisites:
 ```sh
 sudo apt install luarocks lua5.3 lua5.3-dev
-sudo apt-get install libbluetooth-dev libgtk-3-dev libwebkit2gtk-4.0-dev
+sudo apt install libgtk-3-dev libwebkit2gtk-4.0-dev
 ```
 
 ```sh
