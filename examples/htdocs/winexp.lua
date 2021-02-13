@@ -170,4 +170,18 @@ if pmw then
   viewportBottom = viewportTop + height
 end
 
-return winexp
+local function listWindows()
+  callJs('addWindows', winexp.listWindowsInfos(), true)
+end
+
+winexp.lookForCurrentWindow()
+if winexp.restoreHiddenSession() then
+  require('webview').terminate(webview, true)
+end
+
+expose('hideCurrentSession', winexp.hideCurrentSession)
+expose('toggleWindow', winexp.toggleWindowByHandle, true)
+expose('foregroundWindow', winexp.foregroundWindowByHandle, true)
+expose('listWindows', listWindows)
+
+listWindows()

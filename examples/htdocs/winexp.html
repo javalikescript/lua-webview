@@ -9,14 +9,14 @@
     <section id="main">
       <div class="toolbar">
         <button title="Hide Window Explorer, The session will be restored on next launch"
-          v-on:click="window.external.invoke('evalLua:context.winexp.hideCurrentSession()')">Hide</button>
+          v-on:click="webview.hideCurrentSession()">Hide</button>
         <span v-if="seen">
           <button title="Reload" onclick="window.location.reload()">&#x21bb;</button>
         </span>
         <button title="Settings" v-on:click="seen = !seen">&#x2699;</button>
       </div>
       <p>Windows ({{ list.length }})</p>
-      <button title="Load Windows" v-on:click="window.external.invoke('listWindows:')">Refresh</button>
+      <button title="Load Windows" v-on:click="webview.listWindows()">Refresh</button>
       <select title="Visibility" v-model="visibility">
         <option disabled value="">Choose</option>
         <option value="all">All</option>
@@ -27,8 +27,8 @@
       <input type="text" v-model="search">
       <ul>
         <li v-for="wnd in filteredWindows" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">
-          <button v-on:click="window.external.invoke('foregroundWindow:' + wnd.handle)" title="Bring to Front">&#x2b71;</button>
-          <button v-on:click="window.external.invoke('toggleWindow:' + wnd.handle); wnd.visible = !wnd.visible;"
+          <button v-on:click="webview.foregroundWindow(wnd.handle)" title="Bring to Front">&#x2b71;</button>
+          <button v-on:click="webview.toggleWindow(wnd.handle); wnd.visible = !wnd.visible;"
             title="Toggle Visibility" v-bind:class="{ strikeout: wnd.visible }">&#x1f441;</button>
           <span>{{ wnd.text }}</span>
         </li>
@@ -37,5 +37,6 @@
     <script src="assets/promise.min.js" type="text/javascript"></script>
     <script src="assets/vue.min.js" type="text/javascript"></script>
     <script src="winexp.js" type="text/javascript"></script>
+    <script src="winexp.lua" type="text/lua"></script>
   </body>
 </html>

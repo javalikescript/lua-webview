@@ -1,34 +1,53 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <title>Simple WebView Example</title>
+  </head>
   <body>
-    <p id="sentence">It works !</p>
+    <p id="sentence">Initializing...</p>
     <button onclick="showText('...')">Clear</button>
     <button onclick="showText(window.navigator.userAgent)">User Agent</button>
-    <button onclick="invokeExternal('evalJs', 'showText(&quot;Hello JS&quot;)')">Show Hi</button>
-    <button onclick="invokeExternal('title', 'Hello Title')">Change Title</button>
-    <button onclick="invokeExternal('evalLua', 'print(\'Hello Lua\')')">Print Hi</button>
-    <button onclick="invokeExternal('showDate')">Show Date</button>
+    <button onclick="webview.evalJs('showText(&quot;Hello JS ' + (++count) + '&quot;)')">Show Hello</button>
+    <button onclick="webview.title('Title changed ' + (++count))">Change Title</button>
     <br/>
-    <button onclick="invokeExternalJson('print', new Date().toString())">Print Date</button>
-    <button onclick="invokeExternalJson('print', Math.floor(new Date().getTime() / 1000))">Print Seconds</button>
-    <button onclick="invokeExternalJson('print', fullscreen)">Print fullscreen</button>
+    <button onclick="webview.evalLua('print(\'Hello Lua ' + (++count) + '\')')">Print Hello</button>
+    <button onclick="webview.showDate()">Show Date</button>
+    <button onclick="webview.sendMessage('Hey ' + (++count))">Message from JS</button>
+    <button onclick="webview.evalLua('sendMessage(\'Hi ' + (++count) + '\')')">Message to JS</button>
+    <button onclick="webview.evalLua('print(\'args:\', table.concat(context.args, \' \'))')">Print Args</button>
     <br/>
-    <button title="Full-screen" onclick="fullscreen = !fullscreen; invokeExternal('fullscreen', '' + fullscreen)">&#x2922;</button>
+    <button onclick="throw new Error('JS Error')">Throw Error</button>
+    <button onclick="webview.printLua(new Date().toString())">Print Date</button>
+    <button onclick="webview.printLua(Math.floor(new Date().getTime() / 1000))">Print Seconds</button>
+    <button onclick="webview.printLua(fullscreen)">Print fullscreen</button>
+    <br/>
+    <button title="Full-screen" onclick="fullscreen = !fullscreen; webview.fullscreen(fullscreen)">&#x2922;</button>
     <button title="Reload" onclick="window.location.reload()">&#x21bb;</button>
-    <button title="Terminate" onclick="invokeExternal('terminate')">&#x2716;</button>
+    <button title="Terminate" onclick="webview.terminate()">&#x2716;</button>
   </body>
   <script type="text/javascript">
-  var fullscreen = false;
-  function showText(value) {
-    document.getElementById("sentence").innerHTML = value;
-  }
-  function invokeExternal(cmd, string) {
-    window.external.invoke(cmd + ':' + string);
-  }
-  function invokeExternalJson(cmd, obj) {
-    window.external.invoke(cmd + ':' + JSON.stringify(obj));
-  }
-  invokeExternal('*print', 'print(type(value), value)')
-  invokeExternal('+showDate', "callJs('showText', 'Lua date is '..os.date())")
+    var count = 0;
+    var fullscreen = false;
+    function showText(value) {
+      document.getElementById("sentence").innerHTML = value;
+    }
+    var webview = {};
+    webview.onInitalized = function() {
+      showText('It works !');
+    };
+    webview.onMessage = function(data) {
+      showText('Message: ' + data);
+    };
+  </script>
+  <script type="text/lua">
+    expose('printLua', function(value)
+      print(type(value), value)
+    end, true)
+    expose('showDate', function(value)
+      callJs('showText', 'Lua date is '..os.date())
+    end)
+    context.onMessage = function(data)
+      print('message', data)
+    end
   </script>
 </html>
