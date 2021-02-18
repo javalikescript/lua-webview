@@ -6,56 +6,82 @@ local webviewLib = require('webview')
 local status, jsonLib = pcall(require, 'cjson')
 if not status then
   status, jsonLib = pcall(require, 'dkjson')
-end
-if not status then
-  -- provide a basic JSON implementation suitable for basic types
-  jsonLib = {
-    null = {},
-    decode = function(value)
-      if string.sub(value, 1, 1) == '"' then
-        return string.sub(value, 1, -1)
-      elseif string.match(value, '^%s*[%-%+]?%d[%d%.%s]*$') then
-        return tonumber(value)
-      elseif (value == 'true') or (value == 'false') then
-        return value == 'true'
-      elseif value == 'null' then
-        return jsonLib.null
+  if not status then
+    -- provide a basic JSON implementation suitable for basic types
+    local escapeMap = { ['\b'] = '\\b', ['\f'] = '\\f', ['\n'] = '\\n', ['\r'] = '\\r', ['\t'] = '\\t', ['"'] = '\\"', ['\\'] = '\\\\', ['/'] = '\\/', }
+    local revertMap = {}; for c, s in pairs(escapeMap) do revertMap[s] = c; end
+    jsonLib = {
+      null = {},
+      decode = function(value)
+        if string.sub(value, 1, 1) == '"' and string.sub(value, -1, -1) == '"' then
+          return string.gsub(string.gsub(string.sub(value, 2, -2), '\\u(%x%x%x%x)', function(s)
+            return string.char(tonumber(s, 16))
+          end), '\\.', function(s)
+            return revertMap[s] or ''
+          end)
+        elseif string.match(value, '^%s*[%-%+]?%d[%d%.%s]*$') then
+          return tonumber(value)
+        elseif (value == 'true') or (value == 'false') then
+          return value == 'true'
+        elseif value == 'null' then
+          return jsonLib.null
+        end
+        return nil
+      end,
+      encode = function(value)
+        local valueType = type(value)
+        if (valueType == 'boolean') or (valueType == 'number') then
+          return tostring(value)
+        elseif valueType == 'string' then
+          return '"'..string.gsub(value, '[%c"/\\]', function(c)
+            return escapeMap[c] or string.format('\\u%04X', string.byte(c))
+          end)..'"'
+        elseif value == jsonLib.null then
+          return 'null'
+        end
+        return 'undefined'
       end
-      return nil
-    end,
-    encode = function(value)
-      local valueType = type(value)
-      if (valueType == 'boolean') or (valueType == 'number') then
-        return tostring(valueType)
-      elseif valueType == 'string' then
-        return '"'..string.gsub(value, '"', '\\"')..'"'
-      elseif value == jsonLib.null then
-        return 'null'
-      end
-      return 'undefined'
-    end
-  }
-end
-
--- Load file system module
-local lfsLib
-status, lfsLib = pcall(require, 'lfs')
-if not status then
-  local luvLib
-  status, luvLib = pcall(require, 'luv')
-  if status then
-    lfsLib = {
-      currentdir = luvLib.cwd,
-      attributes = luvLib.fs_stat,
     }
   end
-end
-if not status then
-  lfsLib = nil
 end
 
 -- OS file separator
 local fileSeparator = string.sub(package.config, 1, 1) or '/'
+
+-- Load file system module
+local fsLib
+status, fsLib = pcall(require, 'luv')
+if status then
+  local uvLib = fsLib
+  fsLib = {
+    currentdir = uvLib.cwd,
+    attributes = uvLib.fs_stat,
+  }
+else
+  status, fsLib = pcall(require, 'lfs')
+  if not status then
+    -- provide a basic file system implementation
+    fsLib = {
+      currentdir = function()
+        local f = io.popen(fileSeparator == '\\' and 'cd' or 'pwd')
+        if f then
+          local d = f:read()
+          f:close()
+          return d
+        end
+        return '.'
+      end,
+      attributes = function(p)
+        local f = io.open(p)
+        if f then
+          f:close() 
+          return {}
+        end
+        return nil
+      end,
+    }
+  end
+end
 
 -- Lua code injected to provide default local variables
 local localContextLua = 'local evalJs, callJs, expose, sendMessage = context.evalJs, context.callJs, context.expose, context.sendMessage; '
@@ -326,6 +352,12 @@ local function createContext(webview, options)
   return context
 end
 
+local function escapeUrl(value)
+  return string.gsub(value, "[ %c!#$%%&'()*+,/:;=?@%[%]]", function(c)
+    return string.format('%%%02X', string.byte(c))
+  end)
+end
+
 local function launch(url, title, width, height, resizable, options)
   local webview = webviewLib.new(url, title or 'Web View', width or 800, height or 600, resizable ~= false)
   local context = createContext(webview, options)
@@ -334,7 +366,7 @@ end
 
 local function launchFromArgs()
   -- Default web content
-  local url = [[data:text/html,<!DOCTYPE html>
+  local url = 'data:text/html,'..escapeUrl([[<!DOCTYPE html>
   <html>
     <head>
       <title>Welcome WebView</title>
@@ -348,7 +380,7 @@ local function launchFromArgs()
       <button onclick="window.external.invoke('terminate:')">Close</button>
     </body>
   </html>
-  ]]
+  ]])
 
   local title
   local width = 800
@@ -376,8 +408,8 @@ local function launchFromArgs()
       local filePath
       if string.match(urlArg, '^.:\\.+$') or string.match(urlArg, '^/.+$') then
         filePath = tostring(urlArg)
-      elseif lfsLib then
-        filePath = lfsLib.currentdir()..fileSeparator..tostring(urlArg)
+      elseif fsLib then
+        filePath = fsLib.currentdir()..fileSeparator..tostring(urlArg)
       end
       if not filePath then
         print('Invalid URL, to launch a file please use an absolute path')
@@ -433,9 +465,36 @@ local function launchFromArgs()
   webviewLib.loop(webview)
 end
 
+local function test()
+  print('-- JSON --------')
+  local values = {
+    'ti/ti\nta\9ta\tto\20to "tutu" ty\\ty',
+    '', 'Hi', true, false, 123, -123, 1.23,
+  }
+  for _, value in ipairs(values) do
+    local encoded = jsonLib.encode(value)
+    local decoded = jsonLib.decode(encoded)
+    if value == decoded then
+      print(encoded, type(value), 'Ok')
+    else
+      print('>>'..tostring(value)..'<<'..type(value))
+      print('>>'..tostring(encoded)..'<<'..type(encoded))
+      print('>>'..tostring(decoded)..'<<'..type(decoded))
+    end
+  end
+  print('-- FS --------')
+  print('currentdir:', fsLib.currentdir())
+  local paths = {'webview-launcher.lua', 'not a file'}
+  for _, path in ipairs(paths) do
+    print(path, fsLib.attributes(path) and 'exists' or 'not found')
+  end
+end
+
 return {
   initializeJs = initializeJs,
   createContext = createContext,
+  escapeUrl = escapeUrl,
   launch = launch,
   launchFromArgs = launchFromArgs,
+  test = test,
 }
