@@ -31,13 +31,13 @@
     function showText(value) {
       document.getElementById("sentence").innerHTML = value;
     }
-    var webview = {};
-    webview.onInitalized = function() {
+    function onWebviewInitalized(webview) {
       showText('It works !');
+      webview.onMessage = function(data) {
+        showText('Message: ' + data);
+      };
     };
-    webview.onMessage = function(data) {
-      showText('Message: ' + data);
-    };
+    //window.external.invoke(':init:'); // to enable page reload
   </script>
   <script type="text/lua">
     expose('printLua', function(value)

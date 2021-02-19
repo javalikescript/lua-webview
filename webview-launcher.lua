@@ -98,21 +98,17 @@ end
 local function initializeJs(webview, functionMap, options)
   local jsContent = [[
     console.log('initializeJs()');
-    if (typeof window.webview !== 'object') {
-      window.webview = {};
-    }
-    var webview = window.webview;
+    var webview = {};
     webview.invokeLua = function(cmd, string) {
       window.external.invoke(cmd + ':' + string);
     };
     webview.callLua = function(cmd, obj) {
       window.external.invoke(cmd + ':' + JSON.stringify(obj));
     };
-    if (typeof webview.onMessage !== 'function') {
-      webview.onMessage = function(data) {
-        console.log('onMessage not implemented');
-      };
-    }
+    webview.onMessage = function(data) {
+      console.log('onMessage not implemented');
+    };
+    window.webview = webview;
   ]]
   if options and options.captureError then
     jsContent = jsContent..[[
@@ -157,7 +153,7 @@ local function initializeJs(webview, functionMap, options)
           }
         }
       };
-      if( document.readyState !== 'loading' ) {
+      if (document.readyState !== 'loading') {
         evalLuaScripts();
       } else {
         document.addEventListener('DOMContentLoaded', evalLuaScripts);
@@ -165,8 +161,15 @@ local function initializeJs(webview, functionMap, options)
     ]]
   end
   jsContent = jsContent..[[
-    if (typeof webview.onInitalized === 'function') {
-      window.setTimeout(webview.onInitalized, 0);
+    var completeInitialization = function() {
+      if (typeof window.onWebviewInitalized === 'function') {
+        window.onWebviewInitalized(webview);
+      }
+    };
+    if (document.readyState === 'complete') {
+      completeInitialization();
+    } else {
+      window.addEventListener('load', completeInitialization);
     }
   ]]
   webviewLib.eval(webview, jsContent, true)
@@ -465,36 +468,12 @@ local function launchFromArgs()
   webviewLib.loop(webview)
 end
 
-local function test()
-  print('-- JSON --------')
-  local values = {
-    'ti/ti\nta\9ta\tto\20to "tutu" ty\\ty',
-    '', 'Hi', true, false, 123, -123, 1.23,
-  }
-  for _, value in ipairs(values) do
-    local encoded = jsonLib.encode(value)
-    local decoded = jsonLib.decode(encoded)
-    if value == decoded then
-      print(encoded, type(value), 'Ok')
-    else
-      print('>>'..tostring(value)..'<<'..type(value))
-      print('>>'..tostring(encoded)..'<<'..type(encoded))
-      print('>>'..tostring(decoded)..'<<'..type(decoded))
-    end
-  end
-  print('-- FS --------')
-  print('currentdir:', fsLib.currentdir())
-  local paths = {'webview-launcher.lua', 'not a file'}
-  for _, path in ipairs(paths) do
-    print(path, fsLib.attributes(path) and 'exists' or 'not found')
-  end
-end
-
 return {
   initializeJs = initializeJs,
   createContext = createContext,
   escapeUrl = escapeUrl,
   launch = launch,
   launchFromArgs = launchFromArgs,
-  test = test,
+  jsonLib = jsonLib,
+  fsLib = fsLib,
 }
