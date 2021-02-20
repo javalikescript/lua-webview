@@ -97,8 +97,12 @@ end
 -- Initializes the web view and provides a global JavaScript webview object
 local function initializeJs(webview, functionMap, options)
   local jsContent = [[
-    console.log('initializeJs()');
+  if (typeof window.webview === 'object') {
+    console.log('webview object already exists');
+  } else {
+    console.log('initialize webview object');
     var webview = {};
+    window.webview = webview;
     webview.invokeLua = function(cmd, string) {
       window.external.invoke(cmd + ':' + string);
     };
@@ -108,7 +112,6 @@ local function initializeJs(webview, functionMap, options)
     webview.onMessage = function(data) {
       console.log('onMessage not implemented');
     };
-    window.webview = webview;
   ]]
   if options and options.captureError then
     jsContent = jsContent..[[
@@ -120,7 +123,7 @@ local function initializeJs(webview, functionMap, options)
         if (error) {
           message += '\n  error: ' + error;
         }
-        window.external.invoke(':error:' + message + '\n');
+        window.external.invoke(':error:' + message);
         return true;
       };
     ]]
@@ -171,6 +174,7 @@ local function initializeJs(webview, functionMap, options)
     } else {
       window.addEventListener('load', completeInitialization);
     }
+  }
   ]]
   webviewLib.eval(webview, jsContent, true)
 end
@@ -196,7 +200,7 @@ end
 
 -- Prints error message to the error stream
 local function printError(value)
-  io.stderr:write(tostring(value))
+  io.stderr:write(tostring(value)..'\n')
 end
 
 -- Executes the specified Lua code
@@ -277,7 +281,7 @@ local function createContext(webview, options)
   registerFunction(functionMap, 'evalJs', evalJs)
   registerFunction(functionMap, 'sendMessage', sendMessage, true)
 
-  -- Defines a context that will be shared across Lua calls
+  -- Defines the context that will be shared across Lua calls
   local context = {
     expose = function(name, fn, valueIsJson)
       exposeFunction(functionMap, name, fn, valueIsJson, webview)
@@ -316,7 +320,7 @@ local function createContext(webview, options)
           end
           local s, r = pcall(entry.fn, value, context, webview)
           if not s then
-            printError('Fail to execute '..name..' due to', r)
+            printError('Fail to execute '..name..' due to '..tostring(r))
           end
         else
           printError('Unknown function '..name)
@@ -335,10 +339,8 @@ local function createContext(webview, options)
       elseif name == 'error' and flag == ':' then
         printError(value)
       elseif name == 'init' and flag == ':' then
-        if not initialized then
-          initialized = true
-          initializeJs(webview, functionMap, options)
-        end
+        initialized = true
+        initializeJs(webview, functionMap, options)
       else
         printError('Invalid flag '..flag..' for name '..name)
       end
