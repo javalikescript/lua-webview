@@ -120,6 +120,7 @@ static LuaWebView * lua_webview_newuserdata(lua_State *l) {
 	lua_Integer width = luaL_optinteger(l, 3, 800);
 	lua_Integer height = luaL_optinteger(l, 4, 600);
 	lua_Integer resizable = lua_toboolean(l, 5);
+	lua_Integer debug = lua_toboolean(l, 6);
 	LuaWebView *lwv = (LuaWebView *)lua_newuserdata(l, sizeof(LuaWebView));
 	memset(lwv, 0, sizeof(LuaWebView));
 	lwv->initialized = 0;
@@ -128,6 +129,7 @@ static LuaWebView * lua_webview_newuserdata(lua_State *l) {
 	lwv->webview.width = width;
 	lwv->webview.height = height;
 	lwv->webview.resizable = resizable;
+	lwv->webview.debug = debug;
 	initLuaReference(&lwv->cbFn);
 	return lwv;
 }
@@ -168,6 +170,9 @@ static int lua_webview_init(lua_State *l) {
 		}
 		if (lua_isboolean(l, 5)) {
 			lwv->webview.resizable = lua_toboolean(l, 5);
+		}
+		if (lua_isboolean(l, 6)) {
+			lwv->webview.debug = lua_toboolean(l, 6);
 		}
 		int r = webview_init(&lwv->webview);
 		lwv->initialized = (r == 0);

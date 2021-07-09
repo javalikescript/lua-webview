@@ -304,7 +304,10 @@ local function createContext(webview, options)
     -- Setup a Lua function to receive a message from JS
     onMessage = function(data)
       printError('context.onMessage() not implemented')
-    end
+    end,
+    terminate = function()
+      webviewLib.terminate(webview, true)
+    end,
   }
 
   -- Registers the web view callback that handles the JS requests coming from window.external.invoke()
@@ -391,6 +394,7 @@ local function launchFromArgs()
   local width = 800
   local height = 600
   local resizable = true
+  local debug = false
   local initialize = true
   local luaScript = true
   local captureError = true
@@ -443,6 +447,8 @@ local function launchFromArgs()
       height = tonumber(value)
     elseif name == 'resizable' then
       resizable = value ~= 'false'
+    elseif name == 'debug' then
+      debug = value == 'true'
     elseif name == 'initialize' then
       initialize = value ~= 'false'
     elseif name == 'script' then
@@ -455,7 +461,7 @@ local function launchFromArgs()
     end
   end
 
-  local webview = webviewLib.new(url, title or 'Web View', width, height, resizable)
+  local webview = webviewLib.new(url, title or 'Web View', width, height, resizable, debug)
 
   local context = createContext(webview, {
     initialize = initialize,
