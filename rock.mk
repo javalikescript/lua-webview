@@ -6,7 +6,7 @@
 #
 # Build with luaclibs:
 #  luarocks --lua-dir ../../luaclibs/lua/src MAKE=make CC=gcc LD=gcc make
-#  luarocks --lua-dir C:/bin/lua-5.3.5_Win64_bin MAKE=make CC=gcc LD=gcc make lua-webview-1.1-1.rockspec
+#  luarocks --lua-dir C:/bin/lua-5.4.2_Win64_bin MAKE=make CC=gcc LD=gcc make lua-webview-1.3-2.rockspec
 #
 
 CC ?= gcc
@@ -74,6 +74,7 @@ lib: $(TARGET)
 
 install: install-$(PLAT)
 	cp $(TARGET) $(INST_LIBDIR)
+	-cp webview-launcher.lua $(INST_LUADIR)
 
 install-linux:
 
