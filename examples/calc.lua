@@ -1,9 +1,10 @@
 local http = require('jls.net.http')
-local httpHandler = require('jls.net.http.handler')
 local event = require('jls.lang.event')
 local json = require('jls.util.json')
 local File = require('jls.io.File')
 local WebView = require('jls.util.WebView')
+local FileHttpHandler = require('jls.net.http.handler.FileHttpHandler')
+local RestHttpHandler = require('jls.net.http.handler.RestHttpHandler')
 
 local scriptFile = File:new(arg[0]):getAbsoluteFile()
 local scriptDir = scriptFile:getParentFile()
@@ -11,9 +12,9 @@ local htdocsDir = File:new(scriptDir, 'htdocs')
 
 local httpServer = http.Server:new()
 
-httpServer:createContext('/(.*)', httpHandler.file, {rootFile = htdocsDir})
+httpServer:createContext('/(.*)', FileHttpHandler:new(htdocsDir))
 
-httpServer:createContext('/rest/(.*)', httpHandler.rest, {handlers = {
+httpServer:createContext('/rest/(.*)', RestHttpHandler:new({
   calculate = function(exchange)
     local request = exchange:getRequest()
     local data = json.decode(request:getBody())
@@ -24,9 +25,10 @@ httpServer:createContext('/rest/(.*)', httpHandler.rest, {handlers = {
       return {line = err}
     end
   end
-}})
+}))
 
-httpServer:bind('::', 0):next(function()
+-- localhost ::1 127.0.0.1
+httpServer:bind('localhost', 0):next(function()
   local _, port = httpServer:getAddress()
   print('HTTP Server listening on port '..tostring(port))
   WebView.open('http://localhost:'..tostring(port)..'/calc.html', 'Calc', 320, 480, true):ended():next(function()
