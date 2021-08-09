@@ -74,7 +74,7 @@ else
       attributes = function(p)
         local f = io.open(p)
         if f then
-          f:close() 
+          f:close()
           return {}
         end
         return nil
@@ -84,14 +84,17 @@ else
 end
 
 -- Lua code injected to provide default local variables
-local localContextLua = 'local evalJs, callJs, expose, sendMessage = context.evalJs, context.callJs, context.expose, context.sendMessage; '
+local localContextLua = 'local evalJs, callJs, expose = context.evalJs, context.callJs, context.expose; '
 
 local function exposeFunctionJs(name, entry)
+  local nameJs = "'"..name.."'"
   if entry then
     local invokeName = entry.json and 'callLua' or 'invokeLua'
-    return "webview."..name.." = function(value) { webview."..invokeName.."('"..name.."', value); };\n"
+    return 'webview['..nameJs..'] = function(value, callback) {'..
+      'webview.'..invokeName..'('..nameJs..', value, webview.callbackToRef(callback));'..
+      '};\n'
   end
-  return "delete webview."..name..";\n"
+  return 'delete webview['..nameJs..'];\n'
 end
 
 -- Initializes the web view and provides a global JavaScript webview object
@@ -103,14 +106,41 @@ local function initializeJs(webview, functionMap, options)
     console.log('initialize webview object');
     var webview = {};
     window.webview = webview;
-    webview.invokeLua = function(cmd, string) {
-      window.external.invoke(cmd + ':' + string);
+    webview.invokeLua = function(cmd, string, ref) {
+      if (ref) {
+        window.external.invoke('#' + cmd + ':' + ref + ':' + string);
+      } else {
+        window.external.invoke(cmd + ':' + string);
+      }
     };
-    webview.callLua = function(cmd, obj) {
-      window.external.invoke(cmd + ':' + JSON.stringify(obj));
+    webview.callLua = function(cmd, obj, ref) {
+      webview.invokeLua(cmd, JSON.stringify(obj), ref);
     };
-    webview.onMessage = function(data) {
-      console.log('onMessage not implemented');
+    var refs = {};
+    webview.callbackToRef = function(callback, delay) {
+      if (typeof callback === 'function') {
+        var ref;
+        var id = setTimeout(function() {
+          var cb = refs[ref];
+          if (cb) {
+            delete refs[ref];
+            cb('timeout');
+          }
+        }, delay || 30000);
+        ref = id.toString(36);
+        refs[ref] = callback;
+        return ref;
+      }
+      return null;
+    };
+    webview.callbackRef = function(ref, reason, result) {
+      var id = parseInt(ref, 36);
+      clearTimeout(id);
+      var callback = refs[ref];
+      if (callback) {
+        delete refs[ref];
+        callback(reason, result);
+      }
     };
   ]]
   if options and options.captureError then
@@ -166,7 +196,7 @@ local function initializeJs(webview, functionMap, options)
   jsContent = jsContent..[[
     var completeInitialization = function() {
       if (typeof window.onWebviewInitalized === 'function') {
-        window.onWebviewInitalized(webview);
+        webview.evalJs("window.onWebviewInitalized(window.webview);");
       }
     };
     if (document.readyState === 'complete') {
@@ -203,48 +233,63 @@ local function printError(value)
   io.stderr:write(tostring(value)..'\n')
 end
 
+local function handleCallback(callback, reason, result)
+  if callback then
+    callback(reason, result)
+  elseif reason then
+    printError(reason)
+  end
+end
+
 -- Executes the specified Lua code
-local function evalLua(value, context, webview)
-  local f, err = load('local context, webview = ...; '..localContextLua..value)
+local function evalLua(value, callback, context, webview)
+  local f, err = load('local callback, context, webview = ...; '..localContextLua..value)
   if f then
-    f(context, webview)
+    f(callback, context, webview)
   else
-    printError('Error '..tostring(err)..' while loading '..tostring(value))
+    handleCallback(callback, 'Error '..tostring(err)..' while loading '..tostring(value))
   end
 end
 
 -- Toggles the web view full screen on/off
-local function fullscreen(value, _, webview)
+local function fullscreen(value, callback, _, webview)
   webviewLib.fullscreen(webview, value == 'true')
+  handleCallback(callback)
 end
 
 -- Sets the web view title
-local function setTitle(value, _, webview)
+local function setTitle(value, callback, _, webview)
   webviewLib.title(webview, value)
+  handleCallback(callback)
 end
 
 -- Terminates the web view
-local function terminate(_, _, webview)
+local function terminate(_, callback, _, webview)
   webviewLib.terminate(webview, true)
+  handleCallback(callback)
 end
 
 -- Executes the specified Lua file relative to the URL
-local function evalLuaSrc(value, context, webview)
+local function evalLuaSrc(value, callback, context, webview)
   local content
   if context.dirPath then
     local file = io.open(context.dirPath..string.gsub(value, '[/\\]+', fileSeparator))
-    content = file and file:read('a')
+    if file then
+      content = file:read('a')
+      file:close()
+    end
   end
   if content then
-    evalLua(content, context, webview)
+    evalLua(content, callback, context, webview)
   else
-    printError('Cannot load Lua file from src "'..tostring(value)..'"')
+    handleCallback(callback, 'Cannot load Lua file from src "'..tostring(value)..'"')
   end
 end
 
 -- Evaluates the specified JS code
-local function evalJs(value, _, webview)
+local function evalJs(value, callback, _, webview)
   webviewLib.eval(webview, value, true)
+  handleCallback(callback)
 end
 
 -- Calls the specified JS function name,
@@ -257,11 +302,6 @@ local function callJs(webview, functionName, ...)
   end
   local jsString = functionName..'('..table.concat(args, ',')..')'
   webviewLib.eval(webview, jsString, true)
-end
-
--- Handles message
-local function sendMessage(value, context, _)
-  context.onMessage(value, context)
 end
 
 -- Creates the webview context and sets the callback and default functions
@@ -279,7 +319,6 @@ local function createContext(webview, options)
   registerFunction(functionMap, 'evalLua', evalLua)
   registerFunction(functionMap, 'evalLuaSrc', evalLuaSrc)
   registerFunction(functionMap, 'evalJs', evalJs)
-  registerFunction(functionMap, 'sendMessage', sendMessage, true)
 
   -- Defines the context that will be shared across Lua calls
   local context = {
@@ -293,18 +332,6 @@ local function createContext(webview, options)
     callJs = function(functionName, ...)
       callJs(webview, functionName, ...)
     end,
-    -- Setup a Lua function to send a message to JS
-    sendMessage = function(data)
-      local dataJs = ''
-      if data then
-        dataJs = jsonLib.encode(data)
-      end
-      webviewLib.eval(webview, 'webview.onMessage('..dataJs..')', true)
-    end,
-    -- Setup a Lua function to receive a message from JS
-    onMessage = function(data)
-      printError('context.onMessage() not implemented')
-    end,
     terminate = function()
       webviewLib.terminate(webview, true)
     end,
@@ -312,16 +339,31 @@ local function createContext(webview, options)
 
   -- Registers the web view callback that handles the JS requests coming from window.external.invoke()
   webviewLib.callback(webview, function(request)
-    local flag, name, value = string.match(request, '^([^a-zA-Z]?)([a-zA-Z][^:]*):(.*)$')
+    local flag, name, value = string.match(request, '^(%A?)(%a%w*):(.*)$')
     if name then
-      if flag == '' then
+      if flag == '' or flag == '#' then
         -- Look for the specified function
         local entry = functionMap[name]
+        local callback
         if entry then
+          if flag == '#' then
+            local ref, val = string.match(value, '^(%w+):(.*)$')
+            if ref and val then
+              value = val
+              callback = function(reason, result)
+                webviewLib.eval(webview, 'if (webview) {'..
+                  'webview.callbackRef("'..ref..'", '..jsonLib.encode(reason)..', '..jsonLib.encode(result)..');'..
+                  '}', true)
+              end
+            else
+              printError('Invalid reference request '..request)
+              return
+            end
+          end
           if entry.json then
             value = jsonLib.decode(value)
           end
-          local s, r = pcall(entry.fn, value, context, webview)
+          local s, r = pcall(entry.fn, value, callback, context, webview)
           if not s then
             printError('Fail to execute '..name..' due to '..tostring(r))
           end
@@ -332,7 +374,7 @@ local function createContext(webview, options)
         functionMap[name] = nil
       elseif flag == '+' or flag == '*' then
         -- Registering the new function using the specified Lua code
-        local injected = 'local value, context, webview = ...; '
+        local injected = 'local value, callback, context, webview = ...; '
         local fn, err = load(injected..localContextLua..value)
         if fn then
           exposeFunction(functionMap, name, fn, flag == '*', initialized and webview)

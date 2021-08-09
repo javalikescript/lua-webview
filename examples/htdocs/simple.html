@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>Simple WebView Example</title>
+    <script src="../../webview-init.js" type="text/javascript"></script>
   </head>
   <body>
     <p id="sentence">Initializing...</p>
@@ -10,10 +11,8 @@
     <button onclick="webview.evalJs('showText(&quot;Hello JS ' + (++count) + '&quot;)')">Show Hello</button>
     <button onclick="webview.title('Title changed ' + (++count))">Change Title</button>
     <br/>
+    <button onclick="webview.getDate(undefined, showResult)">Show Date</button>
     <button onclick="webview.evalLua('print(\'Hello Lua ' + (++count) + '\')')">Print Hello</button>
-    <button onclick="webview.showDate()">Show Date</button>
-    <button onclick="webview.sendMessage('Hey ' + (++count))">Message from JS</button>
-    <button onclick="webview.evalLua('sendMessage(\'Hi ' + (++count) + '\')')">Message to JS</button>
     <button onclick="webview.evalLua('print(\'args:\', table.concat(context.args, \' \'))')">Print Args</button>
     <br/>
     <button onclick="throw new Error('JS Error')">Throw Error</button>
@@ -31,23 +30,20 @@
     function showText(value) {
       document.getElementById("sentence").innerHTML = value;
     }
+    function showResult(reason, result) {
+      var value = reason ? 'Error: ' + reason : '' + result;
+      document.getElementById("sentence").innerHTML = value;
+    }
     function onWebviewInitalized(webview) {
       showText('It works !');
-      webview.onMessage = function(data) {
-        showText('Message: ' + data);
-      };
     };
-    //window.external.invoke(':init:'); // to enable page reload
   </script>
   <script type="text/lua">
     expose('printLua', function(value)
       print(type(value), value)
     end, true)
-    expose('showDate', function(value)
-      callJs('showText', 'Lua date is '..os.date())
+    expose('getDate', function(_, callback)
+      callback(nil, 'Lua date is '..os.date())
     end)
-    context.onMessage = function(data)
-      print('message', data)
-    end
   </script>
 </html>
