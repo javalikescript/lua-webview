@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html><head lang="en">
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="UTF-8">
+  <title>File</title>
+  <style type="text/css">
+html, body, #app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+	background-color: white;
+}
+.file-chooser {
+  width: 100%;
+	height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+	background-color: inherit;
+}
+  </style>
+  <link rel="stylesheet" href="file.css">
+  <script src="assets/vue.min.js" type="text/javascript"></script>
+  <script src="../../webview-init.js" type="text/javascript"></script>
+  <script src="file.js" type="text/javascript"></script>
+  <script src="file.lua" type="text/lua"></script>
+</head><body>
+  <div id="app">
+    <div>
+      <p>This example allows to choose a file to operate using Lua.</p>
+      <button v-on:click="openFileChooser()">Open</button>
+      <button v-on:click="openFileChooser(true)">Multiple</button>
+      <button v-on:click="openFileChooser(false, true)">Save</button>
+      <button v-on:click="openFileChooser(false, false, true)">Directory</button>
+      <p><span>File:</span><span>{{ filename }}</span></p>
+      <file-chooser-input ref="fileChooserInput"></file-chooser-input>
+    </div>
+  </div>
+  <script type="text/javascript">
+    var vm = new Vue({
+      el: '#app',
+      data: {
+        chooseFile: false,
+        filename: '',
+        fileChooser: null
+      },
+      methods: {
+        openFileChooser: function(multiple, save, directory) {
+          if (this.fileChooser) {
+            return;
+          }
+          var FileChooser = Vue.component('file-chooser-dialog');
+          var fileChooser = new FileChooser();
+          this.fileChooser = fileChooser;
+          fileChooser.$mount();
+          fileChooser.multiple = multiple === true;
+          fileChooser.directory = directory === true;
+          fileChooser.save = save === true;
+          fileChooser.label = save === true ? 'Save' : 'Open';
+          this.$el.appendChild(fileChooser.$el);
+          fileChooser.$on('selected', function(files) {
+            vm.filename = files ? files.join(' ') : '';
+            vm.closeFileChooser();
+          });
+          fileChooser.refresh();
+        },
+        closeFileChooser: function() {
+          if (this.fileChooser) {
+            this.$el.removeChild(this.fileChooser.$el);
+            this.fileChooser.$destroy();
+            this.fileChooser = null;
+          }
+        }
+      }
+    });
+  </script>
+</body></html>

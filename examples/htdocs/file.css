@@ -1,0 +1,28 @@
+.file-chooser {
+	display: flex;
+	flex-direction: column;
+}
+.file-chooser-content {
+	flex-grow: 1;
+}
+.file-chooser-flex-row {
+	min-width: 100%;
+	display: flex;
+	flex-direction: row;
+}
+.file-chooser-flex-row > * {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+.file-chooser-flex-row-content {
+	flex-grow: 1;
+}
+.file-chooser-footer.file-chooser-flex-row {
+  justify-content: flex-end;
+}
+.file-chooser ul {
+  list-style-type: none;
+}
+.file-chooser-directory {
+  text-decoration: underline;
+}
