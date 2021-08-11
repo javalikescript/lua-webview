@@ -23,7 +23,7 @@ content = string.gsub(content, "[ %c!#$%%&'()*+,/:;=?@%[%]]", function(c)
     return string.format('%%%02X', string.byte(c))
 end)
 
-local webview = webviewLib.new('data:text/html,'..content, 'Example', 480, 240)
+local webview = webviewLib.new('data:text/html,'..content, 'Example', 480, 240, true, true)
 
 webviewLib.callback(webview, function(value)
     if value == 'print_date' then

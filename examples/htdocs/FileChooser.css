@@ -1,4 +1,4 @@
-.file-chooser {
+.file-chooser-dialog {
 	display: flex;
 	flex-direction: column;
 }
@@ -20,7 +20,7 @@
 .file-chooser-footer.file-chooser-flex-row {
   justify-content: flex-end;
 }
-.file-chooser ul {
+.file-chooser-dialog ul {
   list-style-type: none;
 }
 .file-chooser-directory {

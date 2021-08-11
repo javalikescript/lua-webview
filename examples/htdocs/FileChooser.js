@@ -17,7 +17,7 @@ function filterFiles(files, showAll, contains) {
 
 
 Vue.component('file-chooser-dialog', {
-  template: `<div class="file-chooser">
+  template: `<div class="file-chooser-dialog">
   <div class="file-chooser-flex-row">
     <input type="text" v-model="inputPath" v-on:keyup="setPath(inputPath)" class="file-chooser-flex-row-content" />
     <button v-on:click="showSettings = !showSettings">&#x2699;</button>
@@ -150,14 +150,16 @@ Vue.component('file-chooser-dialog', {
 
 Vue.component('file-chooser-input', {
   template: `<span>
-  <input list="file-chooser-input-list" v-on:click="clean()" v-on:input="nameChanged()" v-model="name" :title="path + '/' + name" />
+  <input :placeholder="placeholder" :size="size" list="file-chooser-input-list"
+    v-on:click="clean()" v-on:input="nameChanged()" v-model="name" :title="path" />
   <datalist id="file-chooser-input-list">
     <option v-for="file in filteredList" :value="file.name" />
   </datalist></span>`,
   data: function() { return {
     name: '',
     path: '',
-    files: []
+    files: [],
+    size: 40
   }; },
   methods: {
     nameChanged: function() {
@@ -220,6 +222,12 @@ Vue.component('file-chooser-input', {
       var files = filterFiles(this.files);
       files.sort(directoryFirst);
       return files;
+    },
+    placeholder: function() {
+      if (this.path) {
+        return this.path.length <= this.size ? this.path : '...' + this.path.slice(3-this.size);
+      }
+      return 'Click to browse';
     }
   }
 });
