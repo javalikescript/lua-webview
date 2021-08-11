@@ -103,7 +103,7 @@ static int lua_webview_open(lua_State *l) {
 	lua_Integer width = luaL_optinteger(l, 3, 800);
 	lua_Integer height = luaL_optinteger(l, 4, 600);
 	lua_Integer resizable = lua_toboolean(l, 5);
-	webview(title, url, width, height, resizable);
+	webview_run(title, url, width, height, resizable);
 	return 0;
 }
 
@@ -144,14 +144,14 @@ static int lua_webview_new(lua_State *l) {
 	luaL_getmetatable(l, "webview");
 	lua_setmetatable(l, -2);
 	return 1;
-};
+}
 
 static int lua_webview_allocate(lua_State *l) {
 	(void) lua_webview_newuserdata(l);
 	luaL_getmetatable(l, "webview");
 	lua_setmetatable(l, -2);
 	return 1;
-};
+}
 
 static int lua_webview_init(lua_State *l) {
 	LuaWebView *lwv = (LuaWebView *)lua_webview_asudata(l, 1);
