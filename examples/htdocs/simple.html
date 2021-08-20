@@ -41,7 +41,7 @@
   <script type="text/lua">
     expose('printLua', function(value)
       print(type(value), value)
-    end, true)
+    end)
     expose('getDate', function(_, callback)
       callback(nil, 'Lua date is '..os.date())
     end)
