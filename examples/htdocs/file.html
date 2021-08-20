@@ -37,9 +37,9 @@ html {
     <div class="section">
       <h5>Using a dedicated panel</h5>
       <button v-on:click="openFileChooser()">Open</button>
-      <button v-on:click="openFileChooser(true)">Multiple</button>
-      <button v-on:click="openFileChooser(false, true)">Save</button>
-      <button v-on:click="openFileChooser(false, false, true)">Directory</button>
+      <button v-on:click="openFileChooser({multiple: true})">Multiple</button>
+      <button v-on:click="openFileChooser({save: true, label: 'Save'})">Save</button>
+      <button v-on:click="openFileChooser({directory: true})">Directory</button>
       <p><span>{{ filename }}</span></p>
     </div>
     <div class="section">
@@ -51,36 +51,16 @@ html {
     var vm = new Vue({
       el: '#app',
       data: {
-        chooseFile: false,
-        filename: '',
-        fileChooser: null
+        filename: ''
       },
       methods: {
-        openFileChooser: function(multiple, save, directory) {
-          if (this.fileChooser) {
-            return;
-          }
-          var FileChooser = Vue.component('file-chooser-dialog');
-          var fileChooser = new FileChooser();
-          this.fileChooser = fileChooser;
-          fileChooser.$mount();
-          fileChooser.multiple = multiple === true;
-          fileChooser.directory = directory === true;
-          fileChooser.save = save === true;
-          fileChooser.label = save === true ? 'Save' : 'Open';
-          this.$el.appendChild(fileChooser.$el);
+        openFileChooser: function(options) {
+          var FileChooserDialog = Vue.component('file-chooser-dialog');
+          var fileChooser = FileChooserDialog.show(this, options);
           fileChooser.$on('selected', function(files) {
             vm.filename = files ? files.join(' ') : '';
-            vm.closeFileChooser();
           });
           fileChooser.refresh();
-        },
-        closeFileChooser: function() {
-          if (this.fileChooser) {
-            this.$el.removeChild(this.fileChooser.$el);
-            this.fileChooser.$destroy();
-            this.fileChooser = null;
-          }
         }
       }
     });
