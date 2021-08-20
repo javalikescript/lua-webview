@@ -84,6 +84,7 @@ static void unregisterLuaReference(LuaReference *r) {
 
 typedef struct LuaWebViewStruct {
 	LuaReference cbFn;
+	lua_State *loopState;
 	int initialized;
 	struct webview webview;
 } LuaWebView;
@@ -188,10 +189,12 @@ static const char *const lua_webview_loop_modes[] = {
 static int lua_webview_loop(lua_State *l) {
 	LuaWebView *lwv = (LuaWebView *)lua_webview_asudata(l, 1);
 	int mode = luaL_checkoption(l, 2, "default", lua_webview_loop_modes);
+	lwv->loopState = l;
 	int r;
 	do {
 		r = webview_loop(&lwv->webview, mode != 2);
 	} while ((mode == 0) && (r == 0));
+	lwv->loopState = NULL;
 	lua_pushboolean(l, r);
 	return 1;
 }
@@ -202,9 +205,13 @@ static void lua_webview_invoke_cb(struct webview *w, const char *arg) {
 		lua_State *l = lwv->cbFn.state;
 		int ref = lwv->cbFn.ref;
 		if ((l != NULL) && (ref != LUA_NOREF)) {
-			lua_rawgeti(l, LUA_REGISTRYINDEX, ref);
-			lua_pushstring(l, arg);
-			lua_pcall(l, 1, 0, 0);
+			if (l == lwv->loopState) {
+				lua_rawgeti(l, LUA_REGISTRYINDEX, ref);
+				lua_pushstring(l, arg);
+				lua_pcall(l, 1, 0, 0);
+			} else {
+				webview_debug("callback and loop states differs");
+			}
 		}
 	}
 }
