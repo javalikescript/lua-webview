@@ -14,11 +14,13 @@
     <button onclick="webview.getDate(undefined, showResult)">Show Date</button>
     <button onclick="webview.evalLua('print(\'Hello Lua ' + (++count) + '\')')">Print Hello</button>
     <button onclick="webview.evalLua('print(\'args:\', table.concat(context.args, \' \'))')">Print Args</button>
-    <br/>
+    <button onclick="webview.evalLua('print(\'locale:\', os.setlocale())')">Print Locale</button>
     <button onclick="throw new Error('JS Error')">Throw Error</button>
+    <br/>
     <button onclick="webview.printLua(new Date().toString())">Print Date</button>
-    <button onclick="webview.printLua(Math.floor(new Date().getTime() / 1000))">Print Seconds</button>
-    <button onclick="webview.printLua(fullscreen)">Print fullscreen</button>
+    <button onclick="webview.printLua(new Date().getTime() / 1000)">Seconds</button>
+    <button onclick="webview.printLua(fullscreen)">Fullscreen</button>
+    <button onclick="webview.printLua({a: 1.5, b: 2, c: true, d: 'Hi'})">Table</button>
     <br/>
     <button title="Full-screen" onclick="fullscreen = !fullscreen; webview.fullscreen(fullscreen)">&#x2922;</button>
     <button title="Reload" onclick="window.location.reload()">&#x21bb;</button>
@@ -40,7 +42,13 @@
   </script>
   <script type="text/lua">
     expose('printLua', function(value)
-      print(type(value), value)
+      if type(value) == 'table' then
+        for k, v in pairs(value) do
+          print(k, type(v), v)
+        end
+      else
+        print(type(value), value)
+      end
     end)
     expose('getDate', function(_, callback)
       callback(nil, 'Lua date is '..os.date())

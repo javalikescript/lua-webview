@@ -2,6 +2,12 @@ local webviewLib = require('webview')
 
 -- This module allows to launch a web page that could executes custom Lua code.
 
+-- The webview library may change locale to native and thus mislead the JSON libraries.
+if os.setlocale() == 'C' then
+  -- Default locale is 'C' at startup, set native locale
+  os.setlocale('')
+end
+
 -- Load JSON module
 local status, jsonLib = pcall(require, 'cjson')
 if not status then
@@ -30,8 +36,10 @@ if not status then
       end,
       encode = function(value)
         local valueType = type(value)
-        if (valueType == 'boolean') or (valueType == 'number') then
-          return tostring(value)
+        if valueType == 'boolean' then
+          return value and 'true' or 'false'
+        elseif valueType == 'number' then
+          return (string.gsub(tostring(value), ',', '.', 1))
         elseif valueType == 'string' then
           return '"'..string.gsub(value, '[%c"/\\]', function(c)
             return escapeMap[c] or string.format('\\u%04X', string.byte(c))
@@ -223,6 +231,12 @@ local function printError(value)
   io.stderr:write(tostring(value)..'\n')
 end
 
+local function callbackJs(webview, ref, reason, result)
+  webviewLib.eval(webview, 'if (webview) {'..
+    'webview.callbackRef("'..ref..'", '..jsonLib.encode(reason)..', '..jsonLib.encode(result)..');'..
+    '}', true)
+end
+
 local function handleCallback(callback, reason, result)
   if callback then
     callback(reason, result)
@@ -326,6 +340,9 @@ local function createContext(webview, options)
     callJs = function(functionName, ...)
       callJs(webview, functionName, ...)
     end,
+    callbackJs = function(ref, reason, result)
+      callbackJs(webview, ref, reason, result)
+    end,
     terminate = function()
       webviewLib.terminate(webview, true)
     end,
@@ -344,16 +361,15 @@ local function createContext(webview, options)
       if flag == '' or flag == '#' then
         -- Look for the specified function
         local fn = functionMap[name]
-        local callback
+        local callback, cbRef
         if fn then
           if flag == '#' then
             local ref, val = string.match(value, '^(%w+);(.*)$')
             if ref and val then
               value = val
+              cbRef = ref
               callback = function(reason, result)
-                webviewLib.eval(webview, 'if (webview) {'..
-                  'webview.callbackRef("'..ref..'", '..jsonLib.encode(reason)..', '..jsonLib.encode(result)..');'..
-                  '}', true)
+                callbackJs(webview, ref, reason, result)
               end
             else
               printError('Invalid reference request '..request)
@@ -370,7 +386,7 @@ local function createContext(webview, options)
               return
             end
           end
-          s, r = pcall(fn, value, callback, context, webview)
+          s, r = pcall(fn, value, callback, context, webview, cbRef)
           if not s then
             handleCallback(callback, 'Fail to execute '..name..' due to '..tostring(r))
           end
@@ -397,7 +413,7 @@ local function createContext(webview, options)
         printError('Invalid flag '..flag..' for name '..name)
       end
     else
-      printError('Invalid request '..tostring(request))
+      printError('Invalid request #'..tostring(request and #request)..' "'..tostring(request)..'"')
     end
   end
 
@@ -530,7 +546,7 @@ local function launchFromArgs()
   webviewLib.loop(webview)
 end
 
-local function launch(url, title, width, height, resizable, debug, options, context)
+local function getLaunchArgs(url, title, width, height, resizable, debug, options, context)
   if type(url) == 'table' then
     options = url
     context = title
@@ -541,8 +557,27 @@ local function launch(url, title, width, height, resizable, debug, options, cont
     resizable = options.resizable
     debug = options.debug
   end
-  context = context or options.context
-  local webview = webviewLib.new(url, title or 'Web View', width or 800, height or 600, resizable ~= false, debug == true)
+  if type(options) == 'table' then
+    if not context then
+      context = options.context
+    end
+    -- TODO Copy options
+    options.context = nil
+    options.url = nil
+    options.title = nil
+    options.width = nil
+    options.height = nil
+    options.resizable = nil
+    options.debug = nil
+  else
+    options = {}
+  end
+  return url, title or 'Web View', width or 800, height or 600, resizable ~= false, debug == true, options, context
+end
+
+local function launch(...)
+  local url, title, width, height, resizable, debug, options, context = getLaunchArgs(...)
+  local webview = webviewLib.new(url, title, width, height, resizable, debug)
   local ctx, callback = createContext(webview, options)
   if type(context) == 'table' then
     for k, v in pairs(context) do
@@ -553,16 +588,18 @@ local function launch(url, title, width, height, resizable, debug, options, cont
   webviewLib.loop(webview)
 end
 
-local function start(options)
-  local expose = options.expose
-  options.expose = nil
-  local Thread = require('jls.lang.Thread')
-  local thread = Thread:new(function(optionsJson)
-    local webviewLauncher = require('webview-launcher')
-    local opts = webviewLauncher.jsonLib.decode(optionsJson)
-    webviewLauncher.launch(opts)
-  end)
-  thread:start(jsonLib.encode(options))
+local function start(...)
+  local url, title, width, height, resizable, debug, options, context = getLaunchArgs(...)
+  options.initialize = false -- should be done from JS
+  local WebView = require('jls.util.WebView')
+  local thread, wv = WebView.open(url, title, width, height, resizable, debug)
+  local ctx, callback = createContext(wv._webview, options)
+  if type(context) == 'table' then
+    for k, v in pairs(context) do
+      ctx[k] = v
+    end
+  end
+  wv:callback(callback)
   return thread:ended()
 end
 
