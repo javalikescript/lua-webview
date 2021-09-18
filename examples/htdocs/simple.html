@@ -10,21 +10,24 @@
     <button onclick="showText(window.navigator.userAgent)">User Agent</button>
     <button onclick="webview.evalJs('showText(&quot;Hello JS ' + (++count) + '&quot;)')">Show Hello</button>
     <button onclick="webview.title('Title changed ' + (++count))">Change Title</button>
-    <br/>
-    <button onclick="webview.getDate(undefined, showResult)">Show Date</button>
-    <button onclick="webview.evalLua('print(\'Hello Lua ' + (++count) + '\')')">Print Hello</button>
-    <button onclick="webview.evalLua('print(\'args:\', table.concat(context.args, \' \'))')">Print Args</button>
-    <button onclick="webview.evalLua('print(\'locale:\', os.setlocale())')">Print Locale</button>
+    <button onclick="webview.getDate(undefined, showResult)">Show Lua Date</button>
     <button onclick="throw new Error('JS Error')">Throw Error</button>
+    <button onclick="webview.timeoutTest('Hi', function(reason, result) {showText('Timeout: ' + reason ? reason : result)});">Timeout</button>
     <br/>
-    <button onclick="webview.printLua(new Date().toString())">Print Date</button>
+    <p>Print Lua:</p>
+    <button onclick="webview.evalLua('print(\'Hello Lua ' + (++count) + '\')')">Hello</button>
+    <button onclick="webview.evalLua('print(\'args:\', table.concat(context.args, \' \'))')">Args</button>
+    <button onclick="webview.evalLua('print(\'locale:\', os.setlocale())')">Locale</button>
+    <button onclick="webview.printLua(new Date().toString())">Date</button>
     <button onclick="webview.printLua(new Date().getTime() / 1000)">Seconds</button>
     <button onclick="webview.printLua(fullscreen)">Fullscreen</button>
     <button onclick="webview.printLua({a: 1.5, b: 2, c: true, d: 'Hi'})">Table</button>
-    <br/>
-    <button title="Full-screen" onclick="fullscreen = !fullscreen; webview.fullscreen(fullscreen)">&#x2922;</button>
-    <button title="Reload" onclick="window.location.reload()">&#x21bb;</button>
-    <button title="Terminate" onclick="webview.terminate()">&#x2716;</button>
+    <br/><hr/><br/>
+    <div>
+      <button title="Full-screen" onclick="fullscreen = !fullscreen; webview.fullscreen(fullscreen)">&#x2922;</button>
+      <button title="Reload" onclick="window.location.reload()">&#x21bb;</button>
+      <button title="Terminate" onclick="webview.terminate()">&#x2716;</button>
+    </div>
   </body>
   <script type="text/javascript">
     var count = 0;
@@ -41,17 +44,26 @@
     };
   </script>
   <script type="text/lua">
-    expose('printLua', function(value)
-      if type(value) == 'table' then
-        for k, v in pairs(value) do
-          print(k, type(v), v)
+    context.exposeAll({
+      printLua = function(value)
+        if type(value) == 'table' then
+          for k, v in pairs(value) do
+            print(k, type(v), v)
+          end
+        else
+          print(type(value), value)
         end
-      else
-        print(type(value), value)
+      end,
+      timeoutTest = function(value, callback)
+        print('timeoutTest')
+        local event = require('jls.lang.event')
+        event:setTimeout(function()
+          callback('Done '..tostring(value))
+        end, 3000)
+      end,
+      getDate = function(_, callback)
+        callback(nil, 'Lua date is '..os.date())
       end
-    end)
-    expose('getDate', function(_, callback)
-      callback(nil, 'Lua date is '..os.date())
-    end)
+    })
   </script>
 </html>

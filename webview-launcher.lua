@@ -333,6 +333,17 @@ local function createContext(webview, options)
         webviewLib.eval(webview, exposeFunctionJs(name, not fn), true)
       end
     end,
+    exposeAll = function(fnMap)
+      local jsContent = ''
+      for name, fn in pairs(fnMap) do
+        functionMap[name] = fn
+        jsContent = jsContent..exposeFunctionJs(name, not fn)
+      end
+      if initialized then
+        webviewLib.eval(webview, jsContent, true)
+      end
+
+    end,
     -- Setup a Lua function to evaluates JS code
     evalJs = function(value)
       webviewLib.eval(webview, value, true)
@@ -349,8 +360,12 @@ local function createContext(webview, options)
   }
 
   if options and type(options.expose) == 'table' then
-    for name, fn in pairs(options.expose) do
-      context.expose(name, fn)
+    context.exposeAll(options.expose)
+  end
+
+  if options and type(options.context) == 'table' then
+    for name, value in pairs(options.context) do
+      context[name] = value
     end
   end
 
@@ -422,7 +437,7 @@ local function createContext(webview, options)
     initializeJs(webview, functionMap, options)
   end
 
-  return context, handler
+  return handler
 end
 
 local function escapeUrl(value)
@@ -431,7 +446,7 @@ local function escapeUrl(value)
   end)
 end
 
-local function launchFromArgs()
+local function parseArgs()
   -- Default web content
   local url = 'data:text/html,'..escapeUrl([[<!DOCTYPE html>
   <html>
@@ -454,6 +469,7 @@ local function launchFromArgs()
   local height = 600
   local resizable = true
   local debug = false
+  local eventMode = nil
   local initialize = true
   local luaScript = true
   local captureError = true
@@ -486,6 +502,8 @@ local function launchFromArgs()
       resizable = value ~= 'false'
     elseif name == 'debug' then
       debug = value == 'true'
+    elseif name == 'event' and (value == 'open' or value == 'main' or value == 'thread') then
+      eventMode = value
     elseif name == 'initialize' then
       initialize = value ~= 'false'
     elseif name == 'script' then
@@ -526,90 +544,61 @@ local function launchFromArgs()
     end
   end
 
-  local webview = webviewLib.new(url, title or 'Web View', width, height, resizable, debug)
-
   if luaSrcPath and luaPath then
     package.path = package.path..';'..luaSrcPath..'/?.lua'
   end
 
-  local context, callback = createContext(webview, {
+  return url, title or 'Web View', width, height, resizable, debug, {
+    eventMode = eventMode,
     initialize = initialize,
     useJsTitle = not title,
     luaScript = luaScript,
+    luaPath = luaPath,
     captureError = captureError,
-  })
-
-  context.args = ctxArgs
-  context.luaSrcPath = luaSrcPath
-
-  webviewLib.callback(webview, callback)
-  webviewLib.loop(webview)
+    context = {
+      args = ctxArgs,
+      luaSrcPath = luaSrcPath,
+    },
+  }
 end
 
-local function getLaunchArgs(url, title, width, height, resizable, debug, options, context)
-  if type(url) == 'table' then
-    options = url
-    context = title
-    url = options.url
-    title = options.title
-    width = options.width
-    height = options.height
-    resizable = options.resizable
-    debug = options.debug
-  end
-  if type(options) == 'table' then
-    if not context then
-      context = options.context
+local function launchWithOptions(url, title, width, height, resizable, debug, options)
+  options = options or {}
+  if options.eventMode then
+    local event = require('jls.lang.event')
+    local WebView = require('jls.util.WebView')
+    local open = WebView.open
+    if options.eventMode == 'thread' then
+      open = WebView.openInThread
+    elseif options.eventMode == 'main' then
+      open = WebView.openWithThread
     end
-    -- TODO Copy options
-    options.context = nil
-    options.url = nil
-    options.title = nil
-    options.width = nil
-    options.height = nil
-    options.resizable = nil
-    options.debug = nil
+    open(url, title, width, height, resizable, debug, function(webview, data)
+      local webviewLauncher = require('webview-launcher')
+      local opts = webviewLauncher.jsonLib.decode(data)
+      if opts.luaPath and opts.context and opts.context.luaSrcPath then
+        package.path = package.path..';'..opts.context.luaSrcPath..'/?.lua'
+      end
+      local callback = webviewLauncher.createContext(webview._webview, opts)
+      webview:callback(callback)
+    end, jsonLib.encode(options))
+    event:loop()
   else
-    options = {}
+    local webview = webviewLib.new(url, title, width, height, resizable, debug)
+    local callback = createContext(webview, options)
+    webviewLib.callback(webview, callback)
+    webviewLib.loop(webview)
   end
-  return url, title or 'Web View', width or 800, height or 600, resizable ~= false, debug == true, options, context
-end
-
-local function launch(...)
-  local url, title, width, height, resizable, debug, options, context = getLaunchArgs(...)
-  local webview = webviewLib.new(url, title, width, height, resizable, debug)
-  local ctx, callback = createContext(webview, options)
-  if type(context) == 'table' then
-    for k, v in pairs(context) do
-      ctx[k] = v
-    end
-  end
-  webviewLib.callback(webview, callback)
-  webviewLib.loop(webview)
-end
-
-local function start(...)
-  local url, title, width, height, resizable, debug, options, context = getLaunchArgs(...)
-  options.initialize = false -- should be done from JS
-  local WebView = require('jls.util.WebView')
-  local thread, wv = WebView.open(url, title, width, height, resizable, debug)
-  local ctx, callback = createContext(wv._webview, options)
-  if type(context) == 'table' then
-    for k, v in pairs(context) do
-      ctx[k] = v
-    end
-  end
-  wv:callback(callback)
-  return thread:ended()
 end
 
 return {
   initializeJs = initializeJs,
   createContext = createContext,
   escapeUrl = escapeUrl,
-  launch = launch,
-  launchFromArgs = launchFromArgs,
-  start = start,
+  launchFromArgs = function()
+    launchWithOptions(parseArgs())
+  end,
+  launchWithOptions = launchWithOptions,
   jsonLib = jsonLib,
   fsLib = fsLib,
 }
