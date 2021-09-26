@@ -7,6 +7,9 @@ local content = [[<!DOCTYPE html>
     <p id="sentence">Initializing...</p>
     <button onclick="window.external.invoke('count')">Count</button>
     <br/>
+    <!--
+    <button onclick="showText(window.navigator.userAgent)">User Agent</button>
+    -->
     <button title="Terminate" onclick="window.external.invoke('terminate')">&#x2716;</button>
     <br/>
   </body>
