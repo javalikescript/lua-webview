@@ -562,26 +562,36 @@ local function parseArgs()
   }
 end
 
+local function createContextAndPath(wv, opts)
+  if opts.luaPath and opts.context and opts.context.luaSrcPath then
+    package.path = package.path..';'..opts.context.luaSrcPath..'/?.lua'
+  end
+  return createContext(wv, opts)
+end
+
 local function launchWithOptions(url, title, width, height, resizable, debug, options)
   options = options or {}
   if options.eventMode then
     local event = require('jls.lang.event')
     local WebView = require('jls.util.WebView')
-    local open = WebView.open
     if options.eventMode == 'thread' then
-      open = WebView.openInThread
-    elseif options.eventMode == 'main' then
-      open = WebView.openWithThread
-    end
-    open(url, title, width, height, resizable, debug, function(webview, data)
-      local webviewLauncher = require('webview-launcher')
-      local opts = webviewLauncher.jsonLib.decode(data)
-      if opts.luaPath and opts.context and opts.context.luaSrcPath then
-        package.path = package.path..';'..opts.context.luaSrcPath..'/?.lua'
+      --webviewLib.open('data:text/html,<html><body>Close to start</body></thread>', 'Close to start', 320, 200)
+      WebView.openInThread(url, title, width, height, resizable, debug):next(function(webview)
+        local callback = createContextAndPath(webview._webview, options)
+        webview:callback(callback)
+      end)
+    else
+      local open = WebView.open
+      if options.eventMode == 'main' then
+        open = WebView.openWithThread
       end
-      local callback = webviewLauncher.createContext(webview._webview, opts)
-      webview:callback(callback)
-    end, jsonLib.encode(options))
+      open(url, title, width, height, resizable, debug, function(webview, data)
+        local webviewLauncher = require('webview-launcher')
+        local opts = webviewLauncher.jsonLib.decode(data)
+        local callback = webviewLauncher.createContextAndPath(webview._webview, opts)
+        webview:callback(callback)
+      end, jsonLib.encode(options))
+    end
     event:loop()
   else
     local webview = webviewLib.new(url, title, width, height, resizable, debug)
@@ -594,6 +604,7 @@ end
 return {
   initializeJs = initializeJs,
   createContext = createContext,
+  createContextAndPath = createContextAndPath,
   escapeUrl = escapeUrl,
   launchFromArgs = function()
     launchWithOptions(parseArgs())
