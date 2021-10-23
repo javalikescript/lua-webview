@@ -446,7 +446,7 @@ local function escapeUrl(value)
   end)
 end
 
-local function parseArgs()
+local function parseArgs(args)
   -- Default web content
   local url = 'data:text/html,'..escapeUrl([[<!DOCTYPE html>
   <html>
@@ -476,17 +476,18 @@ local function parseArgs()
   local luaPath = false
 
   -- Parse command line arguments
+  args = args or arg or {}
   local ctxArgs = {}
   local luaSrcPath = nil
   local urlArg
 
-  for i = 1, #arg do
-    local name, value = string.match(arg[i], '^%-%-wv%-([^=]+)=?(.*)$')
+  for i = 1, #args do
+    local name, value = string.match(args[i], '^%-%-wv%-([^=]+)=?(.*)$')
     if not name then
       if urlArg then
-        table.insert(ctxArgs, arg[i])
+        table.insert(ctxArgs, args[i])
       else
-        urlArg = arg[i]
+        urlArg = args[i]
       end
     elseif name == 'size' and value then
       local w, h = string.match(value, '^(%d+)[xX-/](%d+)$')
@@ -513,7 +514,7 @@ local function parseArgs()
     elseif name == 'luaPath' then
       luaPath = value == 'true'
     else
-      print('Invalid argument', arg[i])
+      print('Invalid argument', args[i])
       os.exit(22)
     end
   end
@@ -548,7 +549,13 @@ local function parseArgs()
     package.path = package.path..';'..luaSrcPath..'/?.lua'
   end
 
-  return url, title or 'Web View', width, height, resizable, debug, {
+  return url, {
+    title = title or 'Web View',
+    width = width,
+    height = height,
+    resizable = resizable,
+    debug = debug
+  }, {
     eventMode = eventMode,
     initialize = initialize,
     useJsTitle = not title,
@@ -569,32 +576,32 @@ local function createContextAndPath(wv, opts)
   return createContext(wv, opts)
 end
 
-local function launchWithOptions(url, title, width, height, resizable, debug, options)
-  options = options or {}
+local function launchWithOptions(url, wvOptions, options)
+  wvOptions = wvOptions or {}
+  options = options or wvOptions
   if options.eventMode then
     local event = require('jls.lang.event')
     local WebView = require('jls.util.WebView')
     if options.eventMode == 'thread' then
       --webviewLib.open('data:text/html,<html><body>Close to start</body></thread>', 'Close to start', 320, 200)
-      WebView.openInThread(url, title, width, height, resizable, debug):next(function(webview)
+      WebView.open(url, wvOptions):next(function(webview)
         local callback = createContextAndPath(webview._webview, options)
         webview:callback(callback)
       end)
     else
-      local open = WebView.open
-      if options.eventMode == 'main' then
-        open = WebView.openWithThread
-      end
-      open(url, title, width, height, resizable, debug, function(webview, data)
+      wvOptions.sync = options.eventMode == 'main'
+      wvOptions.fn = function(webview, data)
         local webviewLauncher = require('webview-launcher')
         local opts = webviewLauncher.jsonLib.decode(data)
         local callback = webviewLauncher.createContextAndPath(webview._webview, opts)
         webview:callback(callback)
-      end, jsonLib.encode(options))
+      end
+      wvOptions.data = jsonLib.encode(options)
+      WebView.open(url, wvOptions)
     end
     event:loop()
   else
-    local webview = webviewLib.new(url, title, width, height, resizable, debug)
+    local webview = webviewLib.new(url, wvOptions.title, wvOptions.width, wvOptions.height, wvOptions.resizable, wvOptions.debug)
     local callback = createContext(webview, options)
     webviewLib.callback(webview, callback)
     webviewLib.loop(webview)
@@ -606,8 +613,13 @@ return {
   createContext = createContext,
   createContextAndPath = createContextAndPath,
   escapeUrl = escapeUrl,
-  launchFromArgs = function()
-    launchWithOptions(parseArgs())
+  launchFromArgs = function(args, ...)
+    if type(args) == 'string' then
+      args = {args, ...}
+    elseif type(args) ~= 'table' then
+      args = arg
+    end
+    launchWithOptions(parseArgs(args))
   end,
   launchWithOptions = launchWithOptions,
   jsonLib = jsonLib,
