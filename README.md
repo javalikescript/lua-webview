@@ -18,35 +18,60 @@ You could also install it using [LuaRocks](#luarocks).
 
 Lua webview is covered by the MIT license.
 
+## Launcher
+
+An optional Lua launcher module `webview-launcher.lua` is available.
+The HTML scripts using the type `text/lua` will be loaded automatically.
+The Lua scripts could expose named functions with callbacks to JavaScript.
+
+```html
+<button onclick="webview.sayHello('You', console.info)">Say Hello</button>
+<script type="text/lua">
+  context.exposeAll({
+    sayHello = function(value, callback)
+      callback(nil, 'Hello '..tostring(value))
+    end
+  })
+</script>
+```
+or using a Lua file
+```html
+<script src="assets/FileChooser.lua" type="text/lua"></script>
+```
+
+Additionally a JavaScript file `webview-init.js` is available to deal with the launcher initialization including in case of reloading.
+
+The launcher supports events in Lua when used with [luajls](https://github.com/javalikescript/luajls).
+
 ## Examples
 
 Using an HTTP server
-```lua
-lua examples\calc.lua
+```sh
+lua examples/calc.lua
 ```
 
 <img src="https://javalikescript.github.io/lua-webview/screenshots/lua-webview-calc-linux.png" />
 <img src="https://javalikescript.github.io/lua-webview/screenshots/lua-webview-calc-windows.png" />
 
 Using the file system
-```lua
-lua examples\open.lua %CD%\examples\htdocs\todo.html
+```sh
+lua examples/open.lua %CD%\examples\htdocs\todo.html
 ```
 
 <img src="https://javalikescript.github.io/lua-webview/screenshots/lua-webview-todo-linux.png" />
 <img src="https://javalikescript.github.io/lua-webview/screenshots/lua-webview-todo-windows.png" />
 
 Pure Lua
-```lua
+```sh
 wlua53 examples/simple.lua
 ```
 
 <img src="https://javalikescript.github.io/lua-webview/screenshots/lua-webview-simple-linux.png" />
 <img src="https://javalikescript.github.io/lua-webview/screenshots/lua-webview-simple-windows.png" />
 
-Generic launcher, with helper function to pass JSON objects
-```lua
-lua examples\launch.lua %CD%\examples\htdocs\simple.html
+Generic launcher, with helper function to pass JSON objects and more
+```sh
+lua examples/launch.lua examples/htdocs/simple.html --wv-event=thread
 ```
 
 ## LuaRocks
