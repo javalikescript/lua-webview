@@ -10,9 +10,10 @@
     <button onclick="showText(window.navigator.userAgent)">User Agent</button>
     <button onclick="webview.evalJs('showText(&quot;Hello JS ' + (++count) + '&quot;)')">Show Hello</button>
     <button onclick="webview.title('Title changed ' + (++count))">Change Title</button>
+    <button onclick="webview.sayHello('You', showResult)">Say Hello</button>
     <button onclick="webview.getDate(undefined, showResult)">Show Lua Date</button>
     <button onclick="throw new Error('JS Error')">Throw Error</button>
-    <button onclick="webview.timeoutTest('Hi', function(reason, result) {showText('Timeout: ' + reason ? reason : result)});">Timeout</button>
+    <button onclick="webview.timeoutTest('Hi', function(reason, result) {showText('Timer: ' + reason ? reason : result)});">Timer</button>
     <br/>
     <p>Print Lua:</p>
     <button onclick="webview.evalLua('print(\'Hello Lua ' + (++count) + '\')')">Hello</button>
@@ -45,6 +46,9 @@
   </script>
   <script type="text/lua">
     context.exposeAll({
+      sayHello = function(value, callback)
+        callback(nil, 'Hello '..tostring(value))
+      end,
       printLua = function(value)
         if type(value) == 'table' then
           for k, v in pairs(value) do
@@ -55,11 +59,23 @@
         end
       end,
       timeoutTest = function(value, callback)
-        print('timeoutTest')
         local event = require('jls.lang.event')
-        event:setTimeout(function()
-          callback('Done '..tostring(value))
-        end, 3000)
+        if not event:loopAlive() then
+          callback('no event loop')
+          return
+        end
+        print('timeoutTest')
+        local count, delay = 0, 100
+        local timerId
+        timerId = event:setInterval(function()
+          count = count + delay
+          if count < 5000 then
+            context.evalJs("showText('Counting "..tostring(count / 1000).."s')")
+          else
+            callback('Done')
+            event:clearInterval(timerId)
+          end
+        end, delay)
       end,
       getDate = function(_, callback)
         callback(nil, 'Lua date is '..os.date())
