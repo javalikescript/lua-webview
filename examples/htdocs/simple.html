@@ -69,7 +69,7 @@
         local timerId
         timerId = event:setInterval(function()
           count = count + delay
-          if count < 5000 then
+          if count < 3000 then
             context.evalJs("showText('Counting "..tostring(count / 1000).."s')")
           else
             callback('Done')

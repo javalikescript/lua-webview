@@ -228,7 +228,7 @@ end
 
 -- Prints error message to the error stream
 local function printError(value)
-  io.stderr:write(tostring(value)..'\n')
+  io.stderr:write('WebView Launcher - '..tostring(value)..'\n')
 end
 
 local function callbackJs(webview, ref, reason, result)
@@ -503,7 +503,7 @@ local function parseArgs(args)
       resizable = value ~= 'false'
     elseif name == 'debug' then
       debug = value == 'true'
-    elseif name == 'event' and (value == 'open' or value == 'main' or value == 'thread') then
+    elseif name == 'event' and (value == 'open' or value == 'main' or value == 'thread' or value == 'http') then
       eventMode = value
     elseif name == 'initialize' then
       initialize = value ~= 'false'
@@ -588,8 +588,22 @@ local function launchWithOptions(url, wvOptions, options)
         local callback = createContextAndPath(webview._webview, options)
         webview:callback(callback)
       end)
+    elseif options.eventMode == 'http' then
+      if not options.context.luaSrcPath then
+        error('Please specify a file path as URL')
+      end
+      local FileHttpHandler = require('jls.net.http.handler.FileHttpHandler')
+      options.callback = true
+      options.contexts = {
+        ['/(.*)'] = FileHttpHandler:new(options.context.luaSrcPath or '.')
+      }
+      local filename = string.match(url, '^.*[/\\]([^/\\]+)$')
+      WebView.open('http://localhost:0/'..filename, options):next(function(webview)
+        local callback = createContextAndPath(webview._webview, options)
+        webview:callback(callback)
+      end)
     else
-      wvOptions.sync = options.eventMode == 'main'
+      local open = options.eventMode == 'main' and WebView.openSync or WebView.open
       wvOptions.fn = function(webview, data)
         local webviewLauncher = require('webview-launcher')
         local opts = webviewLauncher.jsonLib.decode(data)
@@ -597,7 +611,7 @@ local function launchWithOptions(url, wvOptions, options)
         webview:callback(callback)
       end
       wvOptions.data = jsonLib.encode(options)
-      WebView.open(url, wvOptions)
+      open(url, wvOptions)
     end
     event:loop()
   else

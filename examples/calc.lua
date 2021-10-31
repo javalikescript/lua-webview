@@ -1,4 +1,3 @@
-local http = require('jls.net.http')
 local event = require('jls.lang.event')
 local json = require('jls.util.json')
 local File = require('jls.io.File')
@@ -10,38 +9,28 @@ local scriptFile = File:new(arg[0]):getAbsoluteFile()
 local scriptDir = scriptFile:getParentFile()
 local htdocsDir = File:new(scriptDir, 'htdocs')
 
-local httpServer = http.Server:new()
-
-httpServer:createContext('/(.*)', FileHttpHandler:new(htdocsDir))
-
-httpServer:createContext('/rest/(.*)', RestHttpHandler:new({
-  calculate = function(exchange)
-    local request = exchange:getRequest()
-    local data = json.decode(request:getBody())
-    local f, err = load('return '..tostring(data.line))
-    if f then
-      return {line = f()}
-    elseif err then
-      return {line = err}
-    end
-  end
-}))
-
 -- localhost ::1 127.0.0.1
-httpServer:bind('localhost', 0):next(function()
-  local _, port = httpServer:getAddress()
-  print('HTTP Server listening on port '..tostring(port))
-  return WebView.open('http://localhost:'..tostring(port)..'/calc.html', 'Calc', 320, 480, true, false, false, true)
-end):next(function(webview)
-  local thread = webview:getThread()
-  return thread and thread:ended()
+WebView.open('http://localhost:0/calc.html', 'Calc', 320, 480, true):next(function(webview)
+  local httpServer = webview:getHttpServer()
+  print('WebView opened with HTTP Server bound on address', httpServer:getAddress())
+  httpServer:createContext('/(.*)', FileHttpHandler:new(htdocsDir))
+  httpServer:createContext('/rest/(.*)', RestHttpHandler:new({
+    calculate = function(exchange)
+      local request = exchange:getRequest()
+      local data = json.decode(request:getBody())
+      local f, err = load('return '..tostring(data.line))
+      if f then
+        return {line = f()}
+      elseif err then
+        return {line = err}
+      end
+    end
+  }))
+  return webview:getThread():ended()
 end):next(function()
   print('WebView closed')
-  return httpServer:close()
-end):next(function()
-  print('HTTP Server closed')
 end):catch(function(err)
-  print('Cannot bind HTTP server, '..tostring(err))
+  print('Cannot open webview due to '..tostring(err))
 end)
 
 --print('Looping')
