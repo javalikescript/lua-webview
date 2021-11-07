@@ -26,6 +26,9 @@ var calc = new Vue({
       var calc = this;
       fetch('rest/calculate', {
         method: 'POST',
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           line: calc.value
         })

@@ -1,5 +1,4 @@
 local event = require('jls.lang.event')
-local json = require('jls.util.json')
 local File = require('jls.io.File')
 local WebView = require('jls.util.WebView')
 local FileHttpHandler = require('jls.net.http.handler.FileHttpHandler')
@@ -15,15 +14,9 @@ WebView.open('http://localhost:0/calc.html', 'Calc', 320, 480, true):next(functi
   print('WebView opened with HTTP Server bound on address', httpServer:getAddress())
   httpServer:createContext('/(.*)', FileHttpHandler:new(htdocsDir))
   httpServer:createContext('/rest/(.*)', RestHttpHandler:new({
-    calculate = function(exchange)
-      local request = exchange:getRequest()
-      local data = json.decode(request:getBody())
-      local f, err = load('return '..tostring(data.line))
-      if f then
-        return {line = f()}
-      elseif err then
-        return {line = err}
-      end
+    ['calculate(requestJson)?method=POST&Content-Type=application/json'] = function(exchange, requestJson)
+      local f, err = load('return '..tostring(requestJson.line))
+      return {line = f and f() or err or ''}
     end
   }))
   return webview:getThread():ended()
