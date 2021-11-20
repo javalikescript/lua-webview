@@ -16,34 +16,28 @@
     })
   }
 
-  function fileListInvoke(path, callback) {
-    if (webview && webview.fileList) {
-      webview.fileList(path, callback);
+  function fileList(path, useFetch, callback) {
+    if (useFetch) {
+      if (webview && webview.fileList) {
+        webview.fileList(path, callback);
+      } else {
+        callback('webview.fileList is not available');
+      }
     } else {
-      callback('webview.fileList is not available');
+      fetch('rest/listFiles', {
+        method: 'POST',
+        headers: {
+          "Content-Type": "text/plain"
+        },
+        body: path
+      }).then(function(response) {
+        return response.json();
+      }).then(function(list) {
+        callback(null, list);
+      }, function(reason) {
+        callback(reason || 'Unknown error');
+      });
     }
-  }
-
-  function fileListFetch(path, callback) {
-    fetch('rest/listFiles', {
-      method: 'POST',
-      headers: {
-        "Content-Type": "text/plain"
-      },
-      body: path
-    }).then(function(response) {
-      return response.json();
-    }).then(function(list) {
-      callback(null, list);
-    }, function(reason) {
-      callback(reason || 'Unknown error');
-    });
-  }
-
-  var fileList = fileListInvoke;
-
-  function fileListUseFetch(value) {
-    fileList = value !== false ? fileListFetch : fileListInvoke;
   }
 
   var FileChooserDialog = Vue.component('file-chooser-dialog', {
@@ -84,7 +78,8 @@
       directory: false,
       showAll: false,
       showCancel: true,
-      showSettings: false
+      showSettings: false,
+      fetch: false
     }; },
     methods: {
       onFilePressed: function(file) {
@@ -119,12 +114,12 @@
       },
       list: function(path) {
         var fc = this;
-        fileList(path, function(reason, files) {
+        fileList(path, this.fetch, function(reason, files) {
           if (files) {
             var path = files.shift();
             fc.show(path, files);
           } else {
-            this.error(reason);            
+            fc.error(reason);            
           }
         });
       },
@@ -173,8 +168,6 @@
     }
   });
 
-  FileChooserDialog.useFetch = fileListUseFetch;
-
   FileChooserDialog.show = function(vm, options) {
     var fileChooser = new FileChooserDialog();
     fileChooser.$mount();
@@ -192,7 +185,7 @@
     return fileChooser;
   }
 
-  var FileChooserInput = Vue.component('file-chooser-input', {
+  Vue.component('file-chooser-input', {
     template: '<span>' +
     '<input :placeholder="placeholder" :size="size" list="file-chooser-input-list"' +
     '  v-on:click="clean()" v-on:input="nameChanged()" v-model="name" :title="path" />' +
@@ -203,7 +196,8 @@
       name: '',
       path: '',
       files: [],
-      size: 40
+      size: 40,
+      fetch: false
     }; },
     methods: {
       nameChanged: function() {
@@ -232,10 +226,13 @@
           this.name = '';
         }
       },
+      refresh: function() {
+        this.list(this.path !== '' ? this.path : '.')
+      },
       list: function(path) {
         console.info('list("' + path + '")');
         var fc = this;
-        fileList(path, function(reason, files) {
+        fileList(path, this.fetch, function(reason, files) {
           if (files) {
             var path = files.shift();
             fc.show(path, files);
@@ -272,7 +269,5 @@
       }
     }
   });
-
-  FileChooserInput.useFetch = fileListUseFetch;
 
 })();
