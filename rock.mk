@@ -14,6 +14,12 @@ CC ?= gcc
 PLAT ?= windows
 LIBNAME = webview
 
+ifdef LUA_LIBDIR
+LUA_LIBDIR_OPT=-L$(LUA_LIBDIR)
+else
+LUA_LIBDIR_OPT=
+endif
+
 #LUA_APP = $(LUA_BINDIR)/$(LUA)
 LUA_APP = $(LUA)
 LUA_VERSION = $(shell $(LUA_APP) -e "print(string.sub(_VERSION, 5))")
@@ -40,7 +46,7 @@ CFLAGS_windows = -Wall \
 LIBFLAG_windows = -O \
   -shared \
   -Wl,-s \
-  -L$(LUA_LIBDIR) -l$(LUA_LIBNAME) \
+  $(LUA_LIBDIR_OPT) -l$(LUA_LIBNAME) \
   -static-libgcc \
   -lole32 -lcomctl32 -loleaut32 -luuid -lgdi32
 
@@ -58,7 +64,7 @@ CFLAGS_linux = -pedantic  \
 
 LIBFLAG_linux= -static-libgcc \
   -Wl,-s \
-  -L$(LUA_LIBDIR) \
+  $(LUA_LIBDIR_OPT) \
   $(shell pkg-config --libs gtk+-3.0 webkit2gtk-4.0)
 
 TARGET_linux = $(LIBNAME).so
