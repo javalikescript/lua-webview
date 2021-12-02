@@ -18,6 +18,10 @@ You could also install it using [LuaRocks](#luarocks).
 
 Lua webview is covered by the MIT license.
 
+## Usage
+
+[Fast Cut](https://github.com/javalikescript/fcut) allows to visually cut and join videos then export losslessly thanks to FFmpeg.
+
 ## Launcher
 
 An optional Lua launcher module `webview-launcher.lua` is available.
