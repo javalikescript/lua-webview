@@ -13,14 +13,14 @@ Lua can evaluate JavaScript code and JavaScript can call a registered Lua functi
 This module is a binding of the tiny cross-platform [webview-c](https://github.com/javalikescript/webview-c) C library.
 
 This module is part of the [luaclibs](https://github.com/javalikescript/luaclibs) project,
-the binaries can be found on the [luajls](http://javalikescript.free.fr/lua/) page.
+the binaries can be found on the [luajls](https://github.com/javalikescript/luajls/releases/latest) releases.
 You could also install it using [LuaRocks](#luarocks).
 
 Lua webview is covered by the MIT license.
 
 ## Usage
 
-[Fast Cut](https://github.com/javalikescript/fcut) allows to visually cut and join videos then export losslessly thanks to FFmpeg.
+[Fast Cut](https://github.com/javalikescript/fcut) allows to visually cut and join videos then export them losslessly thanks to FFmpeg.
 
 ## Launcher
 
