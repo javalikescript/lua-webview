@@ -2,7 +2,7 @@
 
 ====
 
-Copyright (c) 2019-2021 SPYL, javalikescript@free.fr
+Copyright (c) 2019-2022 SPYL, javalikescript@free.fr
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -43,3 +43,5 @@ The example dependent libraries are mainly licensed under the MIT License:
  - "promise" is licensed under the MIT License see https://github.com/taylorhakes/promise-polyfill
  - "todo" is licensed under the MIT License see https://github.com/tastejs/todomvc/tree/gh-pages/examples/vue
  - "toastui" is licensed under the MIT License see https://github.com/nhn/tui.editor
+ - "Babylon.js" is licensed under the Apache-2.0 License see https://github.com/BabylonJS/Babylon.js
+ - "shapes.html" is in the public domain see https://github.com/end3r/MDN-Games-3D/blob/gh-pages/Babylon.js/shapes.html

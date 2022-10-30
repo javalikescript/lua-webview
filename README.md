@@ -1,6 +1,6 @@
 ## Overview
 
-The Lua webview module provides functions to open a web page in a dedicated window from Lua.
+The Lua webview module provides functions to open a web page in a dedicated window from [Lua](http://www.lua.org/).
 
 ```lua
 require('webview').open('http://www.lua.org/')
@@ -20,7 +20,9 @@ Lua webview is covered by the MIT license.
 
 ## Usage
 
-[Fast Cut](https://github.com/javalikescript/fcut) allows to visually cut and join videos then export them losslessly thanks to FFmpeg.
+[Fast Cut](https://github.com/javalikescript/fcut) is an advanced example of webview usage.
+
+It allows to visually cut and join videos then export them losslessly thanks to FFmpeg.
 
 ## Launcher
 
@@ -67,7 +69,7 @@ lua examples/open.lua %CD%\examples\htdocs\todo.html
 
 Pure Lua
 ```sh
-wlua53 examples/simple.lua
+wlua54 examples/simple.lua
 ```
 
 <img src="https://javalikescript.github.io/lua-webview/screenshots/lua-webview-simple-linux.png" />
