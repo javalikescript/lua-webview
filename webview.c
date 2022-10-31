@@ -115,17 +115,23 @@ static LuaWebView *lua_webview_asudata(lua_State *l, int ud) {
 }
 
 static LuaWebView * lua_webview_newuserdata(lua_State *l) {
-	const char *url = luaL_optstring(l, 1, "");
-	const char *title = luaL_optstring(l, 2, "Lua Web View");
+	size_t urlLen;
+	size_t titleLen;
+	const char *url = luaL_optlstring(l, 1, "", &urlLen);
+	const char *title = luaL_optlstring(l, 2, "Lua Web View", &titleLen);
 	lua_Integer width = luaL_optinteger(l, 3, 800);
 	lua_Integer height = luaL_optinteger(l, 4, 600);
 	lua_Integer resizable = lua_toboolean(l, 5);
 	lua_Integer debug = lua_toboolean(l, 6);
-	LuaWebView *lwv = (LuaWebView *)lua_newuserdata(l, sizeof(LuaWebView));
+	LuaWebView *lwv = (LuaWebView *)lua_newuserdata(l, sizeof(LuaWebView) + titleLen + 1 + urlLen + 1);
+	const char *titleCopy = ((char *)lwv) + sizeof(LuaWebView);
+	const char *urlCopy = ((char *)lwv) + sizeof(LuaWebView) + titleLen + 1;
 	memset(lwv, 0, sizeof(LuaWebView));
+	memcpy(titleCopy, title, titleLen + 1);
+	memcpy(urlCopy, url, urlLen + 1);
 	lwv->initState = NULL;
-	lwv->webview.url = url;
-	lwv->webview.title = title;
+	lwv->webview.title = titleCopy;
+	lwv->webview.url = urlCopy;
 	lwv->webview.width = width;
 	lwv->webview.height = height;
 	lwv->webview.resizable = resizable;
@@ -157,24 +163,6 @@ static int lua_webview_init(lua_State *l) {
 	LuaWebView *lwv = (LuaWebView *)lua_webview_asudata(l, 1);
 	int initialized = 0;
 	if (lwv->initState == NULL) {
-		if (lua_isstring(l, 1)) {
-			lwv->webview.url = lua_tostring(l, 1);
-		}
-		if (lua_isstring(l, 2)) {
-			lwv->webview.title = lua_tostring(l, 2);
-		}
-		if (lua_isnumber(l, 3)) {
-			lwv->webview.width = lua_tointeger(l, 3);
-		}
-		if (lua_isnumber(l, 4)) {
-			lwv->webview.height = lua_tointeger(l, 4);
-		}
-		if (lua_isboolean(l, 5)) {
-			lwv->webview.resizable = lua_toboolean(l, 5);
-		}
-		if (lua_isboolean(l, 6)) {
-			lwv->webview.debug = lua_toboolean(l, 6);
-		}
 		int r = webview_init(&lwv->webview);
 		if (r == 0) {
 			initialized = 1;
