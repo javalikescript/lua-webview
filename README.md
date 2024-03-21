@@ -18,6 +18,14 @@ You could also install it using [LuaRocks](#luarocks).
 
 Lua webview is covered by the MIT license.
 
+## Build
+
+The Lua webview module could be build using the rock makefile.
+
+```lua
+make -f rock.mk PLAT=windows MAKE=make CC=gcc LD=gcc LUA_LIBDIR=.../lib LUA_INCDIR=.../include LUA=.../bin/lua54.exe
+```
+
 ## Usage
 
 [Fast Cut](https://github.com/javalikescript/fcut) is an advanced example of webview usage.

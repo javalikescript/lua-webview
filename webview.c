@@ -314,6 +314,20 @@ static int lua_webview_gc(lua_State *l) {
 	return 0;
 }
 
+#if defined(WEBVIEW2_MEMORY_MODULE)
+static int lua_webview_loadWebView2Dll(lua_State *l) {
+	void *data;
+	size_t len = 0;
+	int status = 0;
+	data = lua_tolstring(l, 1, &len);
+	if (data != NULL && len > 0 && WebView2Load(data, len)) {
+		status = 1;
+	}
+	lua_pushboolean(l, status);
+	return 1;
+}
+#endif
+
 LUALIB_API int luaopen_webview(lua_State *l) {
 	luaL_newmetatable(l, "webview");
 	lua_pushstring(l, "__gc");
@@ -335,6 +349,9 @@ LUALIB_API int luaopen_webview(lua_State *l) {
 		{ "lighten", lua_webview_lighten },
 		{ "asstring", lua_webview_asstring },
 		{ "fromstring", lua_webview_fromstring },
+#if defined(WEBVIEW2_MEMORY_MODULE)
+		{ "loadWebView2Dll", lua_webview_loadWebView2Dll },
+#endif
 		{ NULL, NULL }
 	};
 	lua_newtable(l);
