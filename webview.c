@@ -162,7 +162,7 @@ static int lua_webview_allocate(lua_State *l) {
 static int lua_webview_init(lua_State *l) {
 	LuaWebView *lwv = (LuaWebView *)lua_webview_asudata(l, 1);
 	int initialized = 0;
-	if (lwv->initState == NULL) {
+	if (lwv != NULL && lwv->initState == NULL) {
 		int r = webview_init(&lwv->webview);
 		if (r == 0) {
 			initialized = 1;
@@ -170,6 +170,12 @@ static int lua_webview_init(lua_State *l) {
 		}
 	}
 	lua_pushboolean(l, initialized);
+	return 1;
+}
+
+static int lua_webview_initialized(lua_State *l) {
+	LuaWebView *lwv = (LuaWebView *)lua_webview_asudata(l, 1);
+	lua_pushboolean(l, lwv != NULL && lwv->initState != NULL);
 	return 1;
 }
 
@@ -340,6 +346,7 @@ LUALIB_API int luaopen_webview(lua_State *l) {
 		{ "allocate", lua_webview_allocate },
 		{ "clean", lua_webview_clean },
 		{ "init", lua_webview_init },
+		{ "initialized", lua_webview_initialized },
 		{ "loop", lua_webview_loop },
 		{ "eval", lua_webview_eval },
 		{ "callback", lua_webview_callback },
