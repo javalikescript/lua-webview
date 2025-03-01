@@ -14,7 +14,7 @@ WebView.open('http://localhost:0/calc.html', 'Calc', 320, 480, true):next(functi
   print('WebView opened with HTTP Server bound on address', httpServer:getAddress())
   httpServer:createContext('/(.*)', FileHttpHandler:new(htdocsDir))
   httpServer:createContext('/rest/(.*)', RestHttpHandler:new({
-    ['calculate(requestJson)?method=POST&Content-Type=application/json'] = function(exchange, requestJson)
+    ['calculate(requestJson)?method=POST&content-type=application/json'] = function(exchange, requestJson)
       local f, err = load('return '..tostring(requestJson.line))
       return {line = f and f() or err or ''}
     end
